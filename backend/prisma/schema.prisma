@@ -1,0 +1,468 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── TENANT (Barbería) ───────────────────────────────────────────────────────
+model Barberia {
+  id              String         @id @default(uuid())
+  nombre          String
+  slug            String         @unique
+  logo            String?
+  colorPrimario   String         @default("#1a1a1a")
+  colorSecundario String         @default("#d4af37")
+  telefono        String?
+  email           String?
+  direccion       String?
+  ciudad          String?
+  pais            String         @default("Nicaragua")
+  descripcion     String?
+  sitioWeb        String?
+  instagram       String?
+  facebook        String?
+  plan            Plan           @default(BASICO)
+  estado          EstadoBarberia @default(ACTIVA)
+  configuracion   Json           @default("{}")
+  creadoEn        DateTime       @default(now())
+  actualizadoEn   DateTime       @updatedAt
+
+  usuarios          Usuario[]
+  servicios         Servicio[]
+  categoriasServicio CategoriaServicio[]
+  productos         Producto[]
+  categoriasProducto CategoriaProducto[]
+  clientes          Cliente[]
+  ventas            Venta[]
+  citas             Cita[]
+  cajas             Caja[]
+  movimientosCaja   MovimientoCaja[]
+  proveedores       Proveedor[]
+  actividad         Actividad[]
+  auditoria         Auditoria[]
+  sucursales        Sucursal[]
+  horarios          Horario[]
+}
+
+enum Plan {
+  BASICO
+  PROFESIONAL
+  ENTERPRISE
+}
+
+enum EstadoBarberia {
+  ACTIVA
+  SUSPENDIDA
+  INACTIVA
+}
+
+// ─── SUCURSAL ────────────────────────────────────────────────────────────────
+model Sucursal {
+  id         String   @id @default(uuid())
+  barberiaId String
+  nombre     String
+  direccion  String?
+  telefono   String?
+  estado     Boolean  @default(true)
+  creadoEn   DateTime @default(now())
+
+  barberia  Barberia  @relation(fields: [barberiaId], references: [id])
+  usuarios  Usuario[]
+  ventas    Venta[]
+  cajas     Caja[]
+  citas     Cita[]
+}
+
+// ─── USUARIO ─────────────────────────────────────────────────────────────────
+model Usuario {
+  id            String    @id @default(uuid())
+  barberiaId    String?
+  sucursalId    String?
+  nombre        String
+  apellido      String?
+  email         String    @unique
+  password      String
+  telefono      String?
+  foto          String?
+  rol           Rol       @default(BARBERO)
+  permisos      Json      @default("[]")
+  estado        Boolean   @default(true)
+  isSuperAdmin  Boolean   @default(false)
+  ultimoAcceso  DateTime?
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+
+  barberia     Barberia? @relation(fields: [barberiaId], references: [id])
+  sucursal     Sucursal? @relation(fields: [sucursalId], references: [id])
+  ventas       Venta[]
+  citasAtiende Cita[]    @relation("BarberoAtiende")
+  citasCreadas Cita[]    @relation("ReceptionistaCrea")
+  actividad    Actividad[]
+  auditoria    Auditoria[]
+  comisiones   Comision[]
+}
+
+enum Rol {
+  SUPERADMIN
+  ADMIN
+  SUPERVISOR
+  BARBERO
+  CAJERO
+  RECEPCIONISTA
+}
+
+// ─── CLIENTE ─────────────────────────────────────────────────────────────────
+model Cliente {
+  id            String    @id @default(uuid())
+  barberiaId    String
+  nombre        String
+  apellido      String?
+  telefono      String?
+  email         String?
+  foto          String?
+  notas         String?
+  cumpleanos    DateTime?
+  totalVisitas  Int       @default(0)
+  totalGastado  Decimal   @default(0) @db.Decimal(10, 2)
+  ultimaVisita  DateTime?
+  estado        Boolean   @default(true)
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+
+  barberia Barberia @relation(fields: [barberiaId], references: [id])
+  ventas   Venta[]
+  citas    Cita[]
+}
+
+// ─── CATEGORÍA DE SERVICIO ───────────────────────────────────────────────────
+model CategoriaServicio {
+  id         String   @id @default(uuid())
+  barberiaId String
+  nombre     String
+  orden      Int      @default(0)
+  creadoEn   DateTime @default(now())
+
+  barberia  Barberia   @relation(fields: [barberiaId], references: [id])
+  servicios Servicio[]
+}
+
+// ─── SERVICIO ─────────────────────────────────────────────────────────────────
+model Servicio {
+  id            String    @id @default(uuid())
+  barberiaId    String
+  categoriaId   String?
+  nombre        String
+  descripcion   String?
+  foto          String?
+  video         String?
+  precio        Decimal   @db.Decimal(10, 2)
+  duracion      Int       @default(30)
+  color         String    @default("#1a1a1a")
+  orden         Int       @default(0)
+  estado        Boolean   @default(true)
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+
+  barberia  Barberia           @relation(fields: [barberiaId], references: [id])
+  categoria CategoriaServicio? @relation(fields: [categoriaId], references: [id])
+  itemsVenta ItemVenta[]
+  itemsCita  ItemCita[]
+}
+
+// ─── CATEGORÍA DE PRODUCTO ───────────────────────────────────────────────────
+model CategoriaProducto {
+  id         String   @id @default(uuid())
+  barberiaId String
+  nombre     String
+  orden      Int      @default(0)
+  creadoEn   DateTime @default(now())
+
+  barberia  Barberia   @relation(fields: [barberiaId], references: [id])
+  productos Producto[]
+}
+
+// ─── PRODUCTO ─────────────────────────────────────────────────────────────────
+model Producto {
+  id           String    @id @default(uuid())
+  barberiaId   String
+  categoriaId  String?
+  nombre       String
+  descripcion  String?
+  foto         String?
+  video        String?
+  precio       Decimal   @db.Decimal(10, 2)
+  costo        Decimal   @default(0) @db.Decimal(10, 2)
+  stock        Int       @default(0)
+  stockMinimo  Int       @default(5)
+  unidad       String    @default("unidad")
+  codigoBarras String?
+  estado       Boolean   @default(true)
+  creadoEn     DateTime  @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  barberia    Barberia            @relation(fields: [barberiaId], references: [id])
+  categoria   CategoriaProducto?  @relation(fields: [categoriaId], references: [id])
+  itemsVenta  ItemVenta[]
+  movimientos MovimientoInventario[]
+  proveedores ProveedorProducto[]
+}
+
+// ─── PROVEEDOR ───────────────────────────────────────────────────────────────
+model Proveedor {
+  id         String   @id @default(uuid())
+  barberiaId String
+  nombre     String
+  telefono   String?
+  email      String?
+  direccion  String?
+  estado     Boolean  @default(true)
+  creadoEn   DateTime @default(now())
+
+  barberia  Barberia            @relation(fields: [barberiaId], references: [id])
+  productos ProveedorProducto[]
+}
+
+model ProveedorProducto {
+  proveedorId String
+  productoId  String
+
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
+  producto  Producto  @relation(fields: [productoId], references: [id])
+
+  @@id([proveedorId, productoId])
+}
+
+// ─── MOVIMIENTO DE INVENTARIO ────────────────────────────────────────────────
+model MovimientoInventario {
+  id           String         @id @default(uuid())
+  productoId   String
+  tipo         TipoMovimiento
+  cantidad     Int
+  stockAntes   Int
+  stockDespues Int
+  nota         String?
+  usuarioId    String?
+  creadoEn     DateTime       @default(now())
+
+  producto Producto @relation(fields: [productoId], references: [id])
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+  AJUSTE
+  VENTA
+  DEVOLUCION
+}
+
+// ─── CAJA ─────────────────────────────────────────────────────────────────────
+model Caja {
+  id           String     @id @default(uuid())
+  barberiaId   String
+  sucursalId   String?
+  nombre       String     @default("Caja Principal")
+  montoInicial Decimal    @default(0) @db.Decimal(10, 2)
+  montoFinal   Decimal?   @db.Decimal(10, 2)
+  totalVentas  Decimal    @default(0) @db.Decimal(10, 2)
+  diferencia   Decimal?   @db.Decimal(10, 2)
+  estado       EstadoCaja @default(CERRADA)
+  abiertaPor   String?
+  cerradaPor   String?
+  abiertoEn    DateTime?
+  cerradoEn    DateTime?
+  notas        String?
+  creadoEn     DateTime   @default(now())
+
+  barberia    Barberia        @relation(fields: [barberiaId], references: [id])
+  sucursal    Sucursal?       @relation(fields: [sucursalId], references: [id])
+  ventas      Venta[]
+  movimientos MovimientoCaja[]
+}
+
+enum EstadoCaja {
+  ABIERTA
+  CERRADA
+}
+
+model MovimientoCaja {
+  id          String             @id @default(uuid())
+  barberiaId  String
+  cajaId      String
+  tipo        TipoMovimientoCaja
+  monto       Decimal            @db.Decimal(10, 2)
+  descripcion String?
+  usuarioId   String?
+  creadoEn    DateTime           @default(now())
+
+  barberia Barberia @relation(fields: [barberiaId], references: [id])
+  caja     Caja     @relation(fields: [cajaId], references: [id])
+}
+
+enum TipoMovimientoCaja {
+  ENTRADA
+  SALIDA
+  VENTA
+  APERTURA
+  CIERRE
+}
+
+// ─── VENTA ───────────────────────────────────────────────────────────────────
+model Venta {
+  id               String      @id @default(uuid())
+  barberiaId       String
+  sucursalId       String?
+  cajaId           String?
+  clienteId        String?
+  usuarioId        String
+  numeroRecibo     String      @unique
+  subtotal         Decimal     @db.Decimal(10, 2)
+  descuento        Decimal     @default(0) @db.Decimal(10, 2)
+  total            Decimal     @db.Decimal(10, 2)
+  efectivoRecibido Decimal     @db.Decimal(10, 2)
+  cambio           Decimal     @default(0) @db.Decimal(10, 2)
+  metodoPago       MetodoPago  @default(EFECTIVO)
+  estado           EstadoVenta @default(COMPLETADA)
+  notas            String?
+  creadoEn         DateTime    @default(now())
+
+  barberia  Barberia  @relation(fields: [barberiaId], references: [id])
+  sucursal  Sucursal? @relation(fields: [sucursalId], references: [id])
+  caja      Caja?     @relation(fields: [cajaId], references: [id])
+  cliente   Cliente?  @relation(fields: [clienteId], references: [id])
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  items     ItemVenta[]
+  comisiones Comision[]
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
+  QR
+  MIXTO
+}
+
+enum EstadoVenta {
+  COMPLETADA
+  ANULADA
+  DEVOLUCION
+}
+
+model ItemVenta {
+  id         String  @id @default(uuid())
+  ventaId    String
+  servicioId String?
+  productoId String?
+  nombre     String
+  precio     Decimal @db.Decimal(10, 2)
+  cantidad   Int     @default(1)
+  descuento  Decimal @default(0) @db.Decimal(10, 2)
+  subtotal   Decimal @db.Decimal(10, 2)
+  barberoId  String?
+
+  venta    Venta     @relation(fields: [ventaId], references: [id])
+  servicio Servicio? @relation(fields: [servicioId], references: [id])
+  producto Producto? @relation(fields: [productoId], references: [id])
+}
+
+// ─── COMISIÓN ─────────────────────────────────────────────────────────────────
+model Comision {
+  id         String  @id @default(uuid())
+  usuarioId  String
+  ventaId    String
+  monto      Decimal @db.Decimal(10, 2)
+  porcentaje Decimal @db.Decimal(5, 2)
+  pagada     Boolean @default(false)
+  creadoEn   DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  venta   Venta   @relation(fields: [ventaId], references: [id])
+}
+
+// ─── CITA ─────────────────────────────────────────────────────────────────────
+model Cita {
+  id              String     @id @default(uuid())
+  barberiaId      String
+  sucursalId      String?
+  clienteId       String?
+  barberoId       String?
+  recepcionistaId String?
+  fecha           DateTime
+  duracion        Int        @default(30)
+  estado          EstadoCita @default(PENDIENTE)
+  notas           String?
+  recordatorio    Boolean    @default(true)
+  creadoEn        DateTime   @default(now())
+  actualizadoEn   DateTime   @updatedAt
+
+  barberia      Barberia  @relation(fields: [barberiaId], references: [id])
+  sucursal      Sucursal? @relation(fields: [sucursalId], references: [id])
+  cliente       Cliente?  @relation(fields: [clienteId], references: [id])
+  barbero       Usuario?  @relation("BarberoAtiende", fields: [barberoId], references: [id])
+  recepcionista Usuario?  @relation("ReceptionistaCrea", fields: [recepcionistaId], references: [id])
+  items         ItemCita[]
+}
+
+enum EstadoCita {
+  PENDIENTE
+  CONFIRMADA
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+  NO_SHOW
+}
+
+model ItemCita {
+  id         String @id @default(uuid())
+  citaId     String
+  servicioId String
+
+  cita     Cita     @relation(fields: [citaId], references: [id])
+  servicio Servicio @relation(fields: [servicioId], references: [id])
+}
+
+// ─── HORARIO ─────────────────────────────────────────────────────────────────
+model Horario {
+  id         String  @id @default(uuid())
+  barberiaId String
+  diaSemana  Int
+  abierto    Boolean @default(true)
+  apertura   String  @default("09:00")
+  cierre     String  @default("19:00")
+
+  barberia Barberia @relation(fields: [barberiaId], references: [id])
+}
+
+// ─── ACTIVIDAD EN TIEMPO REAL ────────────────────────────────────────────────
+model Actividad {
+  id         String   @id @default(uuid())
+  barberiaId String
+  usuarioId  String?
+  tipo       String
+  mensaje    String
+  datos      Json?
+  creadoEn   DateTime @default(now())
+
+  barberia Barberia  @relation(fields: [barberiaId], references: [id])
+  usuario  Usuario?  @relation(fields: [usuarioId], references: [id])
+}
+
+// ─── AUDITORÍA ───────────────────────────────────────────────────────────────
+model Auditoria {
+  id            String   @id @default(uuid())
+  barberiaId    String?
+  usuarioId     String?
+  accion        String
+  tabla         String?
+  registroId    String?
+  valorAnterior Json?
+  valorNuevo    Json?
+  ip            String?
+  dispositivo   String?
+  creadoEn      DateTime @default(now())
+
+  barberia Barberia? @relation(fields: [barberiaId], references: [id])
+  usuario  Usuario?  @relation(fields: [usuarioId], references: [id])
+}
