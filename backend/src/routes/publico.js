@@ -34,7 +34,7 @@ router.get("/:slug/productos", async (req, res) => {
     if (!b) return res.status(404).json({ error: "Barbería no encontrada" });
     const productos = await prisma.producto.findMany({
       where: { barberiaId: b.id, estado: true },
-      select: { id: true, nombre: true, descripcion: true, precio: true, foto: true, video: true, color: true },
+      select: { id: true, nombre: true, descripcion: true, precio: true, foto: true, video: true },
       orderBy: { nombre: "asc" },
     });
     res.json(productos);
