@@ -27,6 +27,20 @@ router.get("/:slug/servicios", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /publico/:slug/productos
+router.get("/:slug/productos", async (req, res) => {
+  try {
+    const b = await prisma.barberia.findUnique({ where: { slug: req.params.slug }, select: { id: true } });
+    if (!b) return res.status(404).json({ error: "Barbería no encontrada" });
+    const productos = await prisma.producto.findMany({
+      where: { barberiaId: b.id, estado: true },
+      select: { id: true, nombre: true, descripcion: true, precio: true, foto: true, video: true, color: true },
+      orderBy: { nombre: "asc" },
+    });
+    res.json(productos);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /publico/:slug/barberos
 router.get("/:slug/barberos", async (req, res) => {
   try {

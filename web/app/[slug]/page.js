@@ -42,10 +42,12 @@ export default function PublicPage() {
       api(`/publico/${slug}`),
       api(`/publico/${slug}/servicios`),
       api(`/publico/${slug}/barberos`),
-    ]).then(([b, s, ba]) => {
+      api(`/publico/${slug}/productos`),
+    ]).then(([b, s, ba, pr]) => {
       setBarberia(b);
       setServicios(s);
       setBarberos(ba);
+      setProductos(pr);
     }).catch(e => setError(e.message)).finally(() => setLoading(false));
   }, [slug]);
 
