@@ -320,7 +320,7 @@ export default function PublicPage() {
                       style={{ background: "none", border: "none", color: "#d4af37", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>Ver todos →</button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))", gap: 14 }}>
-                    {productos.slice(0, 5).map(p => {
+                    {productos.map(p => {
                       const enCarrito = carrito.find(x => x.id === p.id);
                       return (
                         <div key={p.id} style={{ borderRadius: 14, border: "1px solid #1e2330", background: "#111827", overflow: "hidden" }}>
