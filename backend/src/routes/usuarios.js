@@ -3,10 +3,14 @@ const bcrypt = require("bcryptjs");
 const prisma = require("../lib/prisma");
 const { auth } = require("../middleware/auth");
 
+const PERMISOS_COMISION_FULL = ["commission.view","commission.manage","settlement.view","settlement.create","settlement.approve","settlement.void","advance.create","adjustment.create"];
+const PERMISOS_COMISION_SUPERVISOR = ["commission.view","commission.manage","settlement.view","settlement.create","advance.create","adjustment.create"];
+
 const PERMISOS_DEFAULT = {
-  ADMIN: ["crear_usuarios","editar_usuarios","eliminar_usuarios","ver_costos","exportar_reportes","ver_estadisticas","administrar_inventario","abrir_caja","cerrar_caja","aprobar_descuentos","cambiar_precios","agregar_productos","eliminar_productos"],
-  SUPERVISOR: ["ver_estadisticas","ver_inventario","abrir_caja","cerrar_caja","aprobar_descuentos"],
-  BARBERO: ["ver_agenda","registrar_servicios","registrar_ventas","registrar_clientes","ver_comisiones"],
+  ADMIN: ["crear_usuarios","editar_usuarios","eliminar_usuarios","ver_costos","exportar_reportes","ver_estadisticas","administrar_inventario","abrir_caja","cerrar_caja","aprobar_descuentos","cambiar_precios","agregar_productos","eliminar_productos", ...PERMISOS_COMISION_FULL],
+  GERENTE_GENERAL: ["editar_usuarios","ver_costos","exportar_reportes","ver_estadisticas","administrar_inventario","abrir_caja","cerrar_caja","aprobar_descuentos", ...PERMISOS_COMISION_FULL],
+  SUPERVISOR: ["ver_estadisticas","ver_inventario","abrir_caja","cerrar_caja","aprobar_descuentos", ...PERMISOS_COMISION_SUPERVISOR],
+  BARBERO: ["ver_agenda","registrar_servicios","registrar_ventas","registrar_clientes","ver_comisiones","commission.view"],
   CAJERO: ["cobrar","registrar_ventas","imprimir_recibos","abrir_caja","cerrar_caja"],
   RECEPCIONISTA: ["registrar_clientes","crear_citas","editar_citas"],
 };

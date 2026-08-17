@@ -29,21 +29,24 @@ model Barberia {
   creadoEn        DateTime       @default(now())
   actualizadoEn   DateTime       @updatedAt
 
-  usuarios          Usuario[]
-  servicios         Servicio[]
+  usuarios           Usuario[]
+  servicios          Servicio[]
   categoriasServicio CategoriaServicio[]
-  productos         Producto[]
+  productos          Producto[]
   categoriasProducto CategoriaProducto[]
-  clientes          Cliente[]
-  ventas            Venta[]
-  citas             Cita[]
-  cajas             Caja[]
-  movimientosCaja   MovimientoCaja[]
-  proveedores       Proveedor[]
-  actividad         Actividad[]
-  auditoria         Auditoria[]
-  sucursales        Sucursal[]
-  horarios          Horario[]
+  clientes           Cliente[]
+  ventas             Venta[]
+  citas              Cita[]
+  cajas              Caja[]
+  movimientosCaja    MovimientoCaja[]
+  proveedores        Proveedor[]
+  actividad          Actividad[]
+  auditoria          Auditoria[]
+  sucursales         Sucursal[]
+  reglasComision     CommissionRule[]
+  historialComision  CommissionRuleHistory[]
+  horarios           Horario[]
+  comisiones         Comision[]
 }
 
 enum Plan {
@@ -68,11 +71,12 @@ model Sucursal {
   estado     Boolean  @default(true)
   creadoEn   DateTime @default(now())
 
-  barberia  Barberia  @relation(fields: [barberiaId], references: [id])
-  usuarios  Usuario[]
-  ventas    Venta[]
-  cajas     Caja[]
-  citas     Cita[]
+  barberia       Barberia         @relation(fields: [barberiaId], references: [id])
+  usuarios       Usuario[]
+  ventas         Venta[]
+  cajas          Caja[]
+  citas          Cita[]
+  reglasComision CommissionRule[]
 }
 
 // ─── USUARIO ─────────────────────────────────────────────────────────────────
@@ -94,19 +98,22 @@ model Usuario {
   creadoEn      DateTime  @default(now())
   actualizadoEn DateTime  @updatedAt
 
-  barberia     Barberia? @relation(fields: [barberiaId], references: [id])
-  sucursal     Sucursal? @relation(fields: [sucursalId], references: [id])
-  ventas       Venta[]
-  citasAtiende Cita[]    @relation("BarberoAtiende")
-  citasCreadas Cita[]    @relation("ReceptionistaCrea")
-  actividad    Actividad[]
-  auditoria    Auditoria[]
-  comisiones   Comision[]
+  barberia                  Barberia?        @relation(fields: [barberiaId], references: [id])
+  sucursal                  Sucursal?        @relation(fields: [sucursalId], references: [id])
+  ventas                    Venta[]
+  citasAtiende              Cita[]           @relation("BarberoAtiende")
+  citasCreadas              Cita[]           @relation("ReceptionistaCrea")
+  actividad                 Actividad[]
+  auditoria                 Auditoria[]
+  comisiones                Comision[]
+  reglasComisionComoBarbero CommissionRule[] @relation("ComisionBarbero")
+  reglasComisionCreadas     CommissionRule[] @relation("ComisionCreador")
 }
 
 enum Rol {
   SUPERADMIN
   ADMIN
+  GERENTE_GENERAL
   SUPERVISOR
   BARBERO
   CAJERO
@@ -150,25 +157,26 @@ model CategoriaServicio {
 
 // ─── SERVICIO ─────────────────────────────────────────────────────────────────
 model Servicio {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   barberiaId    String
   categoriaId   String?
   nombre        String
   descripcion   String?
   foto          String?
   video         String?
-  precio        Decimal   @db.Decimal(10, 2)
-  duracion      Int       @default(30)
-  color         String    @default("#1a1a1a")
-  orden         Int       @default(0)
-  estado        Boolean   @default(true)
-  creadoEn      DateTime  @default(now())
-  actualizadoEn DateTime  @updatedAt
+  precio        Decimal  @db.Decimal(10, 2)
+  duracion      Int      @default(30)
+  color         String   @default("#1a1a1a")
+  orden         Int      @default(0)
+  estado        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
 
-  barberia  Barberia           @relation(fields: [barberiaId], references: [id])
-  categoria CategoriaServicio? @relation(fields: [categoriaId], references: [id])
-  itemsVenta ItemVenta[]
-  itemsCita  ItemCita[]
+  barberia       Barberia           @relation(fields: [barberiaId], references: [id])
+  categoria      CategoriaServicio? @relation(fields: [categoriaId], references: [id])
+  itemsVenta     ItemVenta[]
+  itemsCita      ItemCita[]
+  reglasComision CommissionRule[]
 }
 
 // ─── CATEGORÍA DE PRODUCTO ───────────────────────────────────────────────────
@@ -185,25 +193,25 @@ model CategoriaProducto {
 
 // ─── PRODUCTO ─────────────────────────────────────────────────────────────────
 model Producto {
-  id           String    @id @default(uuid())
-  barberiaId   String
-  categoriaId  String?
-  nombre       String
-  descripcion  String?
-  foto         String?
-  video        String?
-  precio       Decimal   @db.Decimal(10, 2)
-  costo        Decimal   @default(0) @db.Decimal(10, 2)
-  stock        Int       @default(0)
-  stockMinimo  Int       @default(5)
-  unidad       String    @default("unidad")
-  codigoBarras String?
-  estado       Boolean   @default(true)
-  creadoEn     DateTime  @default(now())
+  id            String   @id @default(uuid())
+  barberiaId    String
+  categoriaId   String?
+  nombre        String
+  descripcion   String?
+  foto          String?
+  video         String?
+  precio        Decimal  @db.Decimal(10, 2)
+  costo         Decimal  @default(0) @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  stockMinimo   Int      @default(5)
+  unidad        String   @default("unidad")
+  codigoBarras  String?
+  estado        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
   actualizadoEn DateTime @updatedAt
 
-  barberia    Barberia            @relation(fields: [barberiaId], references: [id])
-  categoria   CategoriaProducto?  @relation(fields: [categoriaId], references: [id])
+  barberia    Barberia               @relation(fields: [barberiaId], references: [id])
+  categoria   CategoriaProducto?     @relation(fields: [categoriaId], references: [id])
   itemsVenta  ItemVenta[]
   movimientos MovimientoInventario[]
   proveedores ProveedorProducto[]
@@ -275,8 +283,8 @@ model Caja {
   notas        String?
   creadoEn     DateTime   @default(now())
 
-  barberia    Barberia        @relation(fields: [barberiaId], references: [id])
-  sucursal    Sucursal?       @relation(fields: [sucursalId], references: [id])
+  barberia    Barberia         @relation(fields: [barberiaId], references: [id])
+  sucursal    Sucursal?        @relation(fields: [sucursalId], references: [id])
   ventas      Venta[]
   movimientos MovimientoCaja[]
 }
@@ -327,12 +335,12 @@ model Venta {
   notas            String?
   creadoEn         DateTime    @default(now())
 
-  barberia  Barberia  @relation(fields: [barberiaId], references: [id])
-  sucursal  Sucursal? @relation(fields: [sucursalId], references: [id])
-  caja      Caja?     @relation(fields: [cajaId], references: [id])
-  cliente   Cliente?  @relation(fields: [clienteId], references: [id])
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
-  items     ItemVenta[]
+  barberia   Barberia    @relation(fields: [barberiaId], references: [id])
+  sucursal   Sucursal?   @relation(fields: [sucursalId], references: [id])
+  caja       Caja?       @relation(fields: [cajaId], references: [id])
+  cliente    Cliente?    @relation(fields: [clienteId], references: [id])
+  usuario    Usuario     @relation(fields: [usuarioId], references: [id])
+  items      ItemVenta[]
   comisiones Comision[]
 }
 
@@ -361,24 +369,115 @@ model ItemVenta {
   descuento  Decimal @default(0) @db.Decimal(10, 2)
   subtotal   Decimal @db.Decimal(10, 2)
   barberoId  String?
+  propina    Decimal @default(0) @db.Decimal(10, 2)
 
-  venta    Venta     @relation(fields: [ventaId], references: [id])
-  servicio Servicio? @relation(fields: [servicioId], references: [id])
-  producto Producto? @relation(fields: [productoId], references: [id])
+  venta      Venta      @relation(fields: [ventaId], references: [id])
+  servicio   Servicio?  @relation(fields: [servicioId], references: [id])
+  producto   Producto?  @relation(fields: [productoId], references: [id])
+  comisiones Comision[]
 }
 
-// ─── COMISIÓN ─────────────────────────────────────────────────────────────────
+// ─── COMISIÓN (participación del barbero por servicio vendido) ───────────────
+// Cada fila es el snapshot inmutable de la regla vigente al momento de la venta:
+// cambiar CommissionRule después NO debe alterar comisiones ya calculadas.
 model Comision {
-  id         String  @id @default(uuid())
-  usuarioId  String
-  ventaId    String
-  monto      Decimal @db.Decimal(10, 2)
-  porcentaje Decimal @db.Decimal(5, 2)
-  pagada     Boolean @default(false)
-  creadoEn   DateTime @default(now())
+  id                 String         @id @default(uuid())
+  barberiaId         String
+  usuarioId          String
+  ventaId            String
+  itemVentaId        String?
+  commissionRuleId   String?
+  monto              Decimal        @db.Decimal(10, 2)
+  porcentaje         Decimal        @db.Decimal(5, 2)
+  montoBarberia      Decimal?       @db.Decimal(10, 2)
+  porcentajeBarberia Decimal?       @db.Decimal(5, 2)
+  propina            Decimal        @default(0) @db.Decimal(10, 2)
+  estado             EstadoComision @default(PENDIENTE)
+  pagada             Boolean        @default(false)
+  motivoAnulacion    String?
+  creadoEn           DateTime       @default(now())
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  venta   Venta   @relation(fields: [ventaId], references: [id])
+  barberia       Barberia        @relation(fields: [barberiaId], references: [id])
+  usuario        Usuario         @relation(fields: [usuarioId], references: [id])
+  venta          Venta           @relation(fields: [ventaId], references: [id])
+  itemVenta      ItemVenta?      @relation(fields: [itemVentaId], references: [id])
+  commissionRule CommissionRule? @relation(fields: [commissionRuleId], references: [id])
+
+  @@index([barberiaId, usuarioId, estado])
+}
+
+enum EstadoComision {
+  PENDIENTE
+  LIQUIDADA
+  PARCIAL
+  ANULADA
+}
+
+// ─── REGLA DE COMISIÓN ─────────────────────────────────────────────────────────
+// Jerarquía de resolución (ver comisiones.js): 1) barbero+servicio 2) barbero
+// general 3) default de sucursal. Una modificación NUNCA edita la fila vigente:
+// la marca INACTIVA (vigenteHasta) y crea una nueva versión, preservando el
+// historial para que las ventas pasadas conserven el % que tenían al momento.
+model CommissionRule {
+  id            String              @id @default(uuid())
+  barberiaId    String
+  sucursalId    String?
+  barberoId     String?
+  servicioId    String?
+  barberoPct    Decimal             @db.Decimal(5, 2)
+  barberiaPct   Decimal             @db.Decimal(5, 2)
+  vigenteDesde  DateTime
+  vigenteHasta  DateTime?
+  estado        EstadoComisionRegla @default(ACTIVA)
+  motivo        String?
+  version       Int                 @default(1)
+  creadoPorId   String
+  creadoEn      DateTime            @default(now())
+  actualizadoEn DateTime            @updatedAt
+
+  barberia   Barberia                @relation(fields: [barberiaId], references: [id])
+  sucursal   Sucursal?               @relation(fields: [sucursalId], references: [id])
+  barbero    Usuario?                @relation("ComisionBarbero", fields: [barberoId], references: [id])
+  servicio   Servicio?               @relation(fields: [servicioId], references: [id])
+  creadoPor  Usuario                 @relation("ComisionCreador", fields: [creadoPorId], references: [id])
+  comisiones Comision[]
+  historial  CommissionRuleHistory[]
+
+  @@index([barberiaId, barberoId, servicioId, estado])
+  @@index([barberiaId, sucursalId, estado])
+}
+
+enum EstadoComisionRegla {
+  ACTIVA
+  INACTIVA
+}
+
+// ─── HISTORIAL DE REGLAS DE COMISIÓN (auditoría) ───────────────────────────────
+// Fila de auditoría inmutable por cada creación/cambio de CommissionRule.
+// actorNombre/actorRol quedan congelados (snapshot) para que el registro
+// histórico no dependa de que el usuario siga existiendo o conserve ese rol.
+model CommissionRuleHistory {
+  id                  String   @id @default(uuid())
+  barberiaId          String
+  reglaNuevaId        String
+  reglaAnteriorId     String?
+  barberoId           String?
+  sucursalId          String?
+  servicioId          String?
+  barberoPctAnterior  Decimal? @db.Decimal(5, 2)
+  barberiaPctAnterior Decimal? @db.Decimal(5, 2)
+  barberoPctNuevo     Decimal  @db.Decimal(5, 2)
+  barberiaPctNuevo    Decimal  @db.Decimal(5, 2)
+  motivo              String?
+  actorUserId         String
+  actorNombre         String
+  actorRol            String
+  creadoEn            DateTime @default(now())
+
+  barberia   Barberia       @relation(fields: [barberiaId], references: [id])
+  reglaNueva CommissionRule @relation(fields: [reglaNuevaId], references: [id])
+
+  @@index([barberiaId, barberoId])
 }
 
 // ─── CITA ─────────────────────────────────────────────────────────────────────
@@ -397,11 +496,11 @@ model Cita {
   creadoEn        DateTime   @default(now())
   actualizadoEn   DateTime   @updatedAt
 
-  barberia      Barberia  @relation(fields: [barberiaId], references: [id])
-  sucursal      Sucursal? @relation(fields: [sucursalId], references: [id])
-  cliente       Cliente?  @relation(fields: [clienteId], references: [id])
-  barbero       Usuario?  @relation("BarberoAtiende", fields: [barberoId], references: [id])
-  recepcionista Usuario?  @relation("ReceptionistaCrea", fields: [recepcionistaId], references: [id])
+  barberia      Barberia   @relation(fields: [barberiaId], references: [id])
+  sucursal      Sucursal?  @relation(fields: [sucursalId], references: [id])
+  cliente       Cliente?   @relation(fields: [clienteId], references: [id])
+  barbero       Usuario?   @relation("BarberoAtiende", fields: [barberoId], references: [id])
+  recepcionista Usuario?   @relation("ReceptionistaCrea", fields: [recepcionistaId], references: [id])
   items         ItemCita[]
 }
 
@@ -445,8 +544,8 @@ model Actividad {
   datos      Json?
   creadoEn   DateTime @default(now())
 
-  barberia Barberia  @relation(fields: [barberiaId], references: [id])
-  usuario  Usuario?  @relation(fields: [usuarioId], references: [id])
+  barberia Barberia @relation(fields: [barberiaId], references: [id])
+  usuario  Usuario? @relation(fields: [usuarioId], references: [id])
 }
 
 // ─── AUDITORÍA ───────────────────────────────────────────────────────────────
