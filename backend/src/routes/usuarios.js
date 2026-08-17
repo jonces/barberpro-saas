@@ -38,11 +38,20 @@ router.post("/", auth, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+const CAMPOS_EDITABLES = ["nombre","apellido","email","telefono","foto","rol","permisos","estado","sucursalId","barberiaId"];
+
 router.put("/:id", auth, async (req, res) => {
-  const { password, ...data } = req.body;
-  if (password) data.password = await bcrypt.hash(password, 10);
-  const u = await prisma.usuario.update({ where: { id: req.params.id }, data, select: { id:true,nombre:true,apellido:true,email:true,rol:true,permisos:true,estado:true } });
-  res.json(u);
+  try {
+    const data = {};
+    for (const campo of CAMPOS_EDITABLES) {
+      if (req.body[campo] !== undefined) data[campo] = req.body[campo];
+    }
+    if (data.email) data.email = data.email.toLowerCase();
+    if (req.body.password) data.password = await bcrypt.hash(req.body.password, 10);
+
+    const u = await prisma.usuario.update({ where: { id: req.params.id }, data, select: { id:true,nombre:true,apellido:true,email:true,rol:true,permisos:true,estado:true } });
+    res.json(u);
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 router.delete("/:id", auth, async (req, res) => {

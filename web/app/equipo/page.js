@@ -44,8 +44,9 @@ function Modal({ usuario, onClose, onSave }) {
   async function handleSubmit(e) {
     e.preventDefault(); setLoading(true);
     try {
-      const data = { ...form };
-      if (!data.password) delete data.password;
+      const { nombre, apellido, email, telefono, rol, permisos, password } = form;
+      const data = { nombre, apellido, email, telefono, rol, permisos };
+      if (password) data.password = password;
       const result = form.id ? await userApi.update(form.id, data) : await userApi.create(data);
       onSave(result);
     } catch (err) { alert(err.message); } finally { setLoading(false); }
