@@ -109,11 +109,13 @@
 .dash-main-grid { display: grid; grid-template-columns: 2fr 1.1fr 1fr; gap: 16px; }
 .dash-secondary-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr 0.9fr; gap: 16px; }
 .dash-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dash-profile-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
 
 @media (max-width: 1180px) {
   .dash-kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .dash-main-grid { grid-template-columns: 1fr; }
   .dash-secondary-grid { grid-template-columns: 1fr 1fr; }
+  .dash-profile-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }

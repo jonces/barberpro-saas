@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import { usuarios as userApi } from "@/lib/api";
 
-const ROLES = ["ADMIN","SUPERVISOR","BARBERO","CAJERO","RECEPCIONISTA"];
-const ROL_COLOR = { ADMIN:"badge-yellow", SUPERVISOR:"badge-blue", BARBERO:"badge-green", CAJERO:"badge-blue", RECEPCIONISTA:"badge-gray" };
+const ROLES = ["ADMIN","GERENTE_GENERAL","SUPERVISOR","BARBERO","CAJERO","RECEPCIONISTA"];
+const ROL_COLOR = { ADMIN:"badge-yellow", GERENTE_GENERAL:"badge-yellow", SUPERVISOR:"badge-blue", BARBERO:"badge-green", CAJERO:"badge-blue", RECEPCIONISTA:"badge-gray" };
 
 const TODOS_PERMISOS = [
   { key: "crear_usuarios", label: "Crear usuarios" },
@@ -139,7 +140,7 @@ export default function Equipo() {
         {loading && <p style={{ color: "var(--text2)" }}>Cargando...</p>}
         {usuarios.map(u => (
           <div key={u.id} className="card" style={{ padding: 20, opacity: u.estado ? 1 : .6 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <Link href={`/equipo/${u.id}`} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, textDecoration: "none", color: "inherit" }}>
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--accent-dim)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "var(--accent)" }}>
                 {u.nombre[0]}
               </div>
@@ -147,7 +148,7 @@ export default function Equipo() {
                 <p style={{ fontWeight: 700 }}>{u.nombre} {u.apellido || ""}</p>
                 <p style={{ fontSize: 12, color: "var(--text2)" }}>{u.email}</p>
               </div>
-            </div>
+            </Link>
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
               <span className={`badge ${ROL_COLOR[u.rol] || "badge-gray"}`}>{u.rol}</span>
               <span className={`badge ${u.estado ? "badge-green" : "badge-red"}`}>{u.estado ? "Activo" : "Inactivo"}</span>

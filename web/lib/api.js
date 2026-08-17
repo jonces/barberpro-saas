@@ -88,6 +88,13 @@ export const upload = {
 export const ai = {
   descripcion: (nombre, tipo = "servicio") => api("/ai/descripcion", { method: "POST", body: { nombre, tipo } }),
 };
+export const comisiones = {
+  reglas: (params = {}) => api(`/comisiones/reglas?${new URLSearchParams(params)}`),
+  vigente: (params = {}) => api(`/comisiones/reglas/vigente?${new URLSearchParams(params)}`),
+  historial: (params = {}) => api(`/comisiones/historial?${new URLSearchParams(params)}`),
+  crear: (body) => api("/comisiones/reglas", { method: "POST", body }),
+  desactivar: (id, body) => api(`/comisiones/reglas/${id}/desactivar`, { method: "PATCH", body }),
+};
 export const citas = {
   list: (params = {}) => api(`/citas?${new URLSearchParams(params)}`),
   create: (body) => api("/citas", { method: "POST", body }),
