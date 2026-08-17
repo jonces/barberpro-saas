@@ -22,7 +22,7 @@ export const auth = {
   me: () => api("/auth/me"),
 };
 export const dashboard = {
-  get: () => api("/dashboard"),
+  get: (periodo = "7d") => api(`/dashboard?periodo=${periodo}`),
   superadmin: () => api("/dashboard/superadmin"),
 };
 export const barberias = {
