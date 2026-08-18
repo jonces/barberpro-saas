@@ -308,7 +308,7 @@ export default function EstadoCuenta() {
             <p style={{ fontSize: 12.5, color: "var(--text2)" }}>Período: {fmtFecha(desde)} – {fmtFecha(hasta)}</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", minWidth: 0 }}>
           <input className="input" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{ width: 145, fontSize: 12.5, padding: "7px 10px" }} />
           <input className="input" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{ width: 145, fontSize: 12.5, padding: "7px 10px" }} />
           {puede && (

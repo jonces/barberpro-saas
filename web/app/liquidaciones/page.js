@@ -68,7 +68,7 @@ export default function Liquidaciones() {
           <h1 style={{ fontSize: 22, fontWeight: 700, textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>Liquidaciones</h1>
           <p style={{ fontSize: 13.5, color: "var(--text2)", marginTop: 4, textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}>Controla las comisiones, saldos y pagos de tu equipo.</p>
         </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minWidth: 0 }}>
           {PERIODOS.map((p) => (
             <button key={p.id} onClick={() => setPeriodo(p.id)} style={{
               padding: "8px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer",

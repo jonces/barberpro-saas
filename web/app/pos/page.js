@@ -359,7 +359,7 @@ export default function POS() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 20, minHeight: "calc(100vh - 120px)", alignItems: "start" }}>
+      <div className="pos-grid" style={{ display: "grid", gap: 20, minHeight: "calc(100vh - 120px)", alignItems: "start" }}>
         {/* ── CATÁLOGO ── */}
         <div>
           {/* Búsqueda de cliente */}

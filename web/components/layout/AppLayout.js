@@ -25,7 +25,7 @@ export default function AppLayout({ children, title, actions }) {
   return (
     <div className="dash-shell" style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
-      <main className="app-main" style={{ flex: 1, marginLeft: 232, padding: 28, minHeight: "100vh", position: "relative" }}>
+      <main className="app-main" style={{ flex: 1, minWidth: 0, marginLeft: 232, padding: 28, minHeight: "100vh", position: "relative" }}>
         <button
           className="mobile-menu-btn"
           onClick={() => setMenuOpen(true)}
