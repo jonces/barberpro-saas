@@ -1,12 +1,67 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { servicios as svcApi, productos as prodApi, clientes as clienteApi, ventas as ventaApi, caja as cajaApi } from "@/lib/api";
+import { servicios as svcApi, productos as prodApi, clientes as clienteApi, ventas as ventaApi, caja as cajaApi, usuarios as userApi, comisiones } from "@/lib/api";
 
 const fmt = (n) => new Intl.NumberFormat("es-NI").format(Number(n) || 0);
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/* ─── Selección obligatoria de barbero al agregar un servicio ─── */
+function ModalSeleccionarBarbero({ servicio, barberos, actual, onClose, onConfirmar }) {
+  const [busq, setBusq] = useState("");
+  const filtrados = barberos.filter((b) => !busq || `${b.nombre} ${b.apellido || ""}`.toLowerCase().includes(busq.toLowerCase()));
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: 20 }}>
+      <div className="card" style={{ width: "100%", maxWidth: 640, padding: 26, maxHeight: "88vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700 }}>¿Quién realizó el servicio?</h2>
+            <p style={{ fontSize: 13, color: "var(--text2)", marginTop: 2 }}>Selecciona al barbero que atendió al cliente{servicio ? ` — ${servicio.nombre}` : ""}.</p>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text2)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+
+        <input className="input" placeholder="Buscar barbero..." value={busq} onChange={(e) => setBusq(e.target.value)} style={{ margin: "16px 0" }} autoFocus />
+
+        {filtrados.length === 0 ? (
+          <p style={{ color: "var(--text2)", fontSize: 13, textAlign: "center", padding: "24px 0" }}>
+            No hay barberos activos disponibles en esta sucursal.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
+            {filtrados.map((b) => {
+              const sel = actual === b.id;
+              return (
+                <button key={b.id} onClick={() => onConfirmar(b)} style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 10px",
+                  borderRadius: 14, background: "var(--surface2)", cursor: "pointer", textAlign: "center",
+                  border: sel ? "2px solid var(--accent)" : "2px solid transparent",
+                  boxShadow: sel ? "0 0 0 1px var(--accent)" : "none",
+                }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--accent-dim)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "var(--accent)", overflow: "hidden", flexShrink: 0 }}>
+                    {b.foto ? <img src={b.foto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : b.nombre[0]}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{b.nombre} {b.apellido || ""}</p>
+                    <p style={{ fontSize: 11, color: "var(--text2)" }}>Barbero</p>
+                  </div>
+                  <span style={{ fontSize: 10.5, color: "var(--green)", display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} /> Disponible
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ─── Recibo imprimible ─── */
-function Recibo({ venta, carrito, subtotal, descuento, total, efectivo, cambio, cliente, barberia, onNuevaVenta }) {
+function Recibo({ venta, carrito, subtotal, descuento, propina, total, efectivo, cambio, cliente, barberia, onNuevaVenta }) {
   const ref = useRef();
 
   function imprimir() {
@@ -50,9 +105,12 @@ function Recibo({ venta, carrito, subtotal, descuento, total, efectivo, cambio, 
           <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "10px 0" }} />
           {/* Items */}
           {carrito.map((item, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
-              <span style={{ flex: 1 }}>{item.nombre}{item.cantidad > 1 ? ` x${item.cantidad}` : ""}</span>
-              <span style={{ fontWeight: 600 }}>C$ {fmt(item.precio * item.cantidad)}</span>
+            <div key={i} style={{ marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                <span style={{ flex: 1 }}>{item.nombre}{item.cantidad > 1 ? ` x${item.cantidad}` : ""}</span>
+                <span style={{ fontWeight: 600 }}>C$ {fmt(item.precio * item.cantidad)}</span>
+              </div>
+              {item.barberoNombre && <p style={{ margin: 0, fontSize: 11, color: "#777" }}>{item.barberoNombre}</p>}
             </div>
           ))}
           <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "10px 0" }} />
@@ -62,6 +120,11 @@ function Recibo({ venta, carrito, subtotal, descuento, total, efectivo, cambio, 
           {descuento > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", color: "#e53e3e", fontSize: 13 }}>
               <span>Descuento</span><span>- C$ {fmt(descuento)}</span>
+            </div>
+          )}
+          {propina > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+              <span>Propina</span><span>C$ {fmt(propina)}</span>
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 18, marginTop: 6 }}>
@@ -136,15 +199,24 @@ export default function POS() {
   const [efectivo, setEfectivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [recibo, setRecibo] = useState(null);
-  const [barberia, setBarberia] = useState(null);
   const [editandoPrecio, setEditandoPrecio] = useState(null);
+  const [barberos, setBarberos] = useState([]);
+  const [pendienteServicio, setPendienteServicio] = useState(null); // servicio esperando barbero (nuevo)
+  const [editandoBarberoKey, setEditandoBarberoKey] = useState(null); // key del item cuyo barbero se está cambiando
+  const [propinaMonto, setPropinaMonto] = useState(0);
+  const [propinaBarberoId, setPropinaBarberoId] = useState(null); // null = sin definir, "DIVIDIR" = repartir
+  const [usuario] = useState(() => (typeof window !== "undefined" ? JSON.parse(localStorage.getItem("usuario") || "{}") : {}));
+  const barberia = usuario.barberia;
+  const puedeVerComision = usuario.isSuperAdmin || (usuario.permisos || []).includes("commission.view");
+  const puedeGestionarComision = usuario.isSuperAdmin || (usuario.permisos || []).includes("commission.manage");
 
   useEffect(() => {
-    Promise.all([svcApi.list(), prodApi.list(), cajaApi.activa()])
-      .then(([s, p, c]) => { setServicios(s.filter(x => x.estado)); setProductos(p.filter(x => x.estado)); setCajaActiva(c); });
-    const u = JSON.parse(localStorage.getItem("usuario") || "{}");
-    setBarberia(u.barberia);
-  }, []);
+    Promise.all([svcApi.list(), prodApi.list(), cajaApi.activa(), userApi.list()])
+      .then(([s, p, c, us]) => {
+        setServicios(s.filter(x => x.estado)); setProductos(p.filter(x => x.estado)); setCajaActiva(c);
+        setBarberos(us.filter(x => x.rol === "BARBERO" && x.estado && (!x.sucursal?.id || x.sucursal.id === usuario.sucursalId)));
+      });
+  }, [usuario.sucursalId]);
 
   useEffect(() => {
     if (busqCliente.length < 2) { setClientes([]); return; }
@@ -152,25 +224,77 @@ export default function POS() {
   }, [busqCliente]);
 
   const subtotal = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
-  const total = Math.max(0, subtotal - Number(descuento || 0));
+  const barberosEnCarrito = [...new Map(carrito.filter(i => i.tipo === "servicio" && i.barberoId).map(i => [i.barberoId, { id: i.barberoId, nombre: i.barberoNombre }])).values()];
+
+  // Con un solo barbero en el carrito la propina se le asigna automáticamente;
+  // con varios, el usuario decide (elegir uno o dividir) — sin efecto de por
+  // medio, se deriva directamente del carrito en cada render.
+  const propinaBarberoEfectivo = barberosEnCarrito.length === 1 ? barberosEnCarrito[0].id : propinaBarberoId;
+
+  const distribucionPropina = {};
+  if (Number(propinaMonto) > 0 && barberosEnCarrito.length > 0) {
+    if (propinaBarberoEfectivo === "DIVIDIR") {
+      const porBarbero = round2(Number(propinaMonto) / barberosEnCarrito.length);
+      barberosEnCarrito.forEach((b) => {
+        const linea = carrito.find(i => i.tipo === "servicio" && i.barberoId === b.id);
+        if (linea) distribucionPropina[linea.lineId] = porBarbero;
+      });
+    } else if (propinaBarberoEfectivo) {
+      const linea = carrito.find(i => i.tipo === "servicio" && i.barberoId === propinaBarberoEfectivo);
+      if (linea) distribucionPropina[linea.lineId] = round2(Number(propinaMonto));
+    }
+  }
+  const propinaTotal = Object.values(distribucionPropina).reduce((s, v) => s + v, 0);
+  const total = Math.max(0, subtotal - Number(descuento || 0) + propinaTotal);
   const cambio = Number(efectivo || 0) - total;
 
+  function nuevoLineId() { return `l${Date.now()}${Math.random().toString(36).slice(2, 8)}`; }
+
+  function resolverComisionLinea(lineId, barberoId, servicioId) {
+    setCarrito(c => c.map(x => x.lineId === lineId ? { ...x, comisionCargando: true, comisionError: null } : x));
+    comisiones.vigente({ barberoId, servicioId })
+      .then(({ regla }) => setCarrito(c => c.map(x => x.lineId === lineId ? { ...x, comisionCargando: false, comisionRegla: regla, comisionError: null } : x)))
+      .catch((e) => setCarrito(c => c.map(x => x.lineId === lineId ? { ...x, comisionCargando: false, comisionRegla: null, comisionError: e.message } : x)));
+  }
+
   function agregarItem(item, tipo) {
+    if (tipo === "servicio") { setPendienteServicio(item); return; }
     setCarrito(c => {
       const existe = c.find(x => x.id === item.id && x.tipo === tipo);
       if (existe) return c.map(x => x.id === item.id && x.tipo === tipo ? { ...x, cantidad: x.cantidad + 1 } : x);
-      return [...c, { ...item, tipo, cantidad: 1 }];
+      return [...c, { ...item, tipo, cantidad: 1, lineId: nuevoLineId() }];
     });
   }
 
-  function cambiarCantidad(id, tipo, delta) {
-    setCarrito(c => c.map(x => x.id === id && x.tipo === tipo ? { ...x, cantidad: Math.max(1, x.cantidad + delta) } : x));
+  function confirmarBarbero(barbero) {
+    if (editandoBarberoKey) {
+      const lineId = editandoBarberoKey;
+      setCarrito(c => c.map(x => x.lineId === lineId ? { ...x, barberoId: barbero.id, barberoNombre: `${barbero.nombre} ${barbero.apellido || ""}`.trim(), barberoFoto: barbero.foto } : x));
+      const linea = carrito.find(x => x.lineId === lineId);
+      if (linea) resolverComisionLinea(lineId, barbero.id, linea.id);
+      setEditandoBarberoKey(null);
+      return;
+    }
+    if (pendienteServicio) {
+      setCarrito(c => {
+        const existe = c.find(x => x.tipo === "servicio" && x.id === pendienteServicio.id && x.barberoId === barbero.id);
+        if (existe) return c.map(x => x.lineId === existe.lineId ? { ...x, cantidad: x.cantidad + 1 } : x);
+        const lineId = nuevoLineId();
+        resolverComisionLinea(lineId, barbero.id, pendienteServicio.id);
+        return [...c, { ...pendienteServicio, tipo: "servicio", cantidad: 1, lineId, barberoId: barbero.id, barberoNombre: `${barbero.nombre} ${barbero.apellido || ""}`.trim(), barberoFoto: barbero.foto }];
+      });
+      setPendienteServicio(null);
+    }
   }
 
-  function quitarItem(id, tipo) { setCarrito(c => c.filter(x => !(x.id === id && x.tipo === tipo))); }
+  function cambiarCantidad(lineId, delta) {
+    setCarrito(c => c.map(x => x.lineId === lineId ? { ...x, cantidad: Math.max(1, x.cantidad + delta) } : x));
+  }
 
-  function editarPrecioItem(id, tipo, nuevoPrecio) {
-    setCarrito(c => c.map(x => x.id === id && x.tipo === tipo ? { ...x, precio: Number(nuevoPrecio) } : x));
+  function quitarItem(lineId) { setCarrito(c => c.filter(x => x.lineId !== lineId)); }
+
+  function editarPrecioItem(lineId, nuevoPrecio) {
+    setCarrito(c => c.map(x => x.lineId === lineId ? { ...x, precio: Number(nuevoPrecio) } : x));
     setEditandoPrecio(null);
   }
 
@@ -180,19 +304,23 @@ export default function POS() {
 
   async function finalizarVenta() {
     if (carrito.length === 0) return alert("Agrega al menos un servicio o producto");
+    const sinComision = carrito.find(i => i.tipo === "servicio" && !i.comisionRegla);
+    if (sinComision) return alert(`"${sinComision.nombre}" con ${sinComision.barberoNombre} no tiene una regla de comisión configurada. Configúrala antes de cobrar.`);
     if (!efectivo || Number(efectivo) < total) return alert("El efectivo recibido es menor al total");
     setLoading(true);
     try {
       const items = carrito.map(i => ({
         [i.tipo === "servicio" ? "servicioId" : "productoId"]: i.id,
         nombre: i.nombre, precio: i.precio, cantidad: i.cantidad, descuento: 0,
+        barberoId: i.tipo === "servicio" ? i.barberoId : undefined,
+        propina: distribucionPropina[i.lineId] || 0,
       }));
       const venta = await ventaApi.create({
         clienteId: clienteSeleccionado?.id, cajaId: cajaActiva?.id, items,
         descuento: Number(descuento || 0), efectivoRecibido: Number(efectivo),
       });
-      setRecibo({ venta, carritoSnap: [...carrito], subtotalSnap: subtotal, descuentoSnap: Number(descuento || 0), totalSnap: total, efectivoSnap: Number(efectivo), cambioSnap: cambio, clienteSnap: clienteSeleccionado });
-      setCarrito([]); setEfectivo(""); setDescuento(0); setClienteSeleccionado(null); setBusqCliente("");
+      setRecibo({ venta, carritoSnap: [...carrito], subtotalSnap: subtotal, descuentoSnap: Number(descuento || 0), propinaSnap: propinaTotal, totalSnap: total, efectivoSnap: Number(efectivo), cambioSnap: cambio, clienteSnap: clienteSeleccionado });
+      setCarrito([]); setEfectivo(""); setDescuento(0); setClienteSeleccionado(null); setBusqCliente(""); setPropinaMonto(0); setPropinaBarberoId(null);
     } catch (e) { alert(e.message); }
     finally { setLoading(false); }
   }
@@ -205,12 +333,23 @@ export default function POS() {
           carrito={recibo.carritoSnap}
           subtotal={recibo.subtotalSnap}
           descuento={recibo.descuentoSnap}
+          propina={recibo.propinaSnap}
           total={recibo.totalSnap}
           efectivo={recibo.efectivoSnap}
           cambio={recibo.cambioSnap}
           cliente={recibo.clienteSnap}
           barberia={barberia}
           onNuevaVenta={() => setRecibo(null)}
+        />
+      )}
+
+      {(pendienteServicio || editandoBarberoKey) && (
+        <ModalSeleccionarBarbero
+          servicio={pendienteServicio || carrito.find(x => x.lineId === editandoBarberoKey)}
+          barberos={barberos}
+          actual={editandoBarberoKey ? carrito.find(x => x.lineId === editandoBarberoKey)?.barberoId : null}
+          onClose={() => { setPendienteServicio(null); setEditandoBarberoKey(null); }}
+          onConfirmar={confirmarBarbero}
         />
       )}
 
@@ -301,36 +440,119 @@ export default function POS() {
                 <p style={{ fontSize: 13 }}>Selecciona servicios o productos</p>
               </div>
             ) : carrito.map(item => (
-              <div key={`${item.id}-${item.tipo}`} style={{ background: "var(--surface2)", borderRadius: 10, padding: "10px 12px" }}>
+              <div key={item.lineId} style={{ background: "var(--surface2)", borderRadius: 10, padding: "10px 12px" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{item.nombre}</p>
                     <span style={{ fontSize: 11, color: "var(--text2)", background: "var(--surface)", padding: "1px 6px", borderRadius: 4 }}>{item.tipo}</span>
                   </div>
-                  <button onClick={() => quitarItem(item.id, item.tipo)} style={{ background: "rgba(239,68,68,.15)", border: "none", color: "var(--red)", cursor: "pointer", width: 22, height: 22, borderRadius: 6, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>×</button>
+                  <button onClick={() => quitarItem(item.lineId)} style={{ background: "rgba(239,68,68,.15)", border: "none", color: "var(--red)", cursor: "pointer", width: 22, height: 22, borderRadius: 6, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>×</button>
                 </div>
+
+                {/* Barbero asignado (solo servicios) */}
+                {item.tipo === "servicio" && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, padding: "6px 8px", background: "var(--surface)", borderRadius: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--accent-dim)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--accent)", overflow: "hidden", flexShrink: 0 }}>
+                        {item.barberoFoto ? <img src={item.barberoFoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (item.barberoNombre || "?")[0]}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.barberoNombre}</span>
+                    </div>
+                    <button onClick={() => setEditandoBarberoKey(item.lineId)} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", flexShrink: 0 }}>Cambiar</button>
+                  </div>
+                )}
+                {item.tipo === "servicio" && item.comisionCargando && (
+                  <p style={{ fontSize: 11, color: "var(--text2)", marginBottom: 8 }}>Calculando comisión...</p>
+                )}
+                {item.tipo === "servicio" && !item.comisionCargando && !item.comisionRegla && (
+                  <div style={{ marginBottom: 8, padding: "6px 8px", background: "var(--orange-dim)", borderRadius: 8, fontSize: 11.5 }}>
+                    <p style={{ color: "var(--orange)", fontWeight: 600 }}>⚠ Comisión no configurada</p>
+                    <p style={{ color: "var(--text2)", marginTop: 2 }}>{item.barberoNombre} todavía no tiene una regla para este servicio.</p>
+                    {puedeGestionarComision
+                      ? <Link href={`/equipo/${item.barberoId}`} target="_blank" style={{ color: "var(--accent)" }}>Configurar comisión →</Link>
+                      : <span style={{ color: "var(--text2)" }}>Solicita a un administrador que la configure.</span>}
+                  </div>
+                )}
+                {item.tipo === "servicio" && item.comisionRegla && puedeVerComision && (
+                  <p style={{ fontSize: 11, color: "var(--text2)", marginBottom: 8 }}>
+                    Comisión {Number(item.comisionRegla.barberoPct)}/{Number(item.comisionRegla.barberiaPct)} · {item.barberoNombre.split(" ")[0]} C$ {fmt(round2(item.precio * item.cantidad * Number(item.comisionRegla.barberoPct) / 100))}
+                  </p>
+                )}
+
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   {/* Editar precio */}
-                  {editandoPrecio === `${item.id}-${item.tipo}` ? (
-                    <input autoFocus type="number" defaultValue={item.precio} onBlur={e => editarPrecioItem(item.id, item.tipo, e.target.value)} onKeyDown={e => e.key === "Enter" && editarPrecioItem(item.id, item.tipo, e.target.value)}
+                  {editandoPrecio === item.lineId ? (
+                    <input autoFocus type="number" defaultValue={item.precio} onBlur={e => editarPrecioItem(item.lineId, e.target.value)} onKeyDown={e => e.key === "Enter" && editarPrecioItem(item.lineId, e.target.value)}
                       style={{ width: 90, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--accent)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }} />
                   ) : (
-                    <button onClick={() => setEditandoPrecio(`${item.id}-${item.tipo}`)} style={{ background: "none", border: "1px dashed transparent", borderRadius: 6, color: "var(--accent)", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "2px 6px" }}
+                    <button onClick={() => setEditandoPrecio(item.lineId)} style={{ background: "none", border: "1px dashed transparent", borderRadius: 6, color: "var(--accent)", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "2px 6px" }}
                       title="Clic para editar precio" onMouseEnter={e => e.currentTarget.style.borderColor = "var(--accent)"} onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}>
                       C$ {fmt(item.precio)}
                     </button>
                   )}
                   {/* Cantidad */}
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <button onClick={() => cambiarCantidad(item.id, item.tipo, -1)} style={{ width: 26, height: 26, borderRadius: 8, background: "#333", border: "none", color: "var(--text)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                    <button onClick={() => cambiarCantidad(item.lineId, -1)} style={{ width: 26, height: 26, borderRadius: 8, background: "#333", border: "none", color: "var(--text)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
                     <span style={{ fontSize: 14, fontWeight: 700, minWidth: 22, textAlign: "center" }}>{item.cantidad}</span>
-                    <button onClick={() => cambiarCantidad(item.id, item.tipo, 1)} style={{ width: 26, height: 26, borderRadius: 8, background: "#333", border: "none", color: "var(--text)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                    <button onClick={() => cambiarCantidad(item.lineId, 1)} style={{ width: 26, height: 26, borderRadius: 8, background: "#333", border: "none", color: "var(--text)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
                   </div>
                   <span style={{ color: "var(--text2)", fontSize: 13, minWidth: 70, textAlign: "right" }}>C$ {fmt(item.precio * item.cantidad)}</span>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Resumen de comisión (solo usuarios autorizados) */}
+          {puedeVerComision && barberosEnCarrito.length > 0 && carrito.some(i => i.comisionRegla) && (
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 4 }}>
+              <p style={{ fontSize: 10, color: "var(--text2)", fontWeight: 700, letterSpacing: .5, textTransform: "uppercase", marginBottom: 2 }}>Distribución de comisión</p>
+              {barberosEnCarrito.map((b) => {
+                const monto = carrito.filter(i => i.tipo === "servicio" && i.barberoId === b.id && i.comisionRegla)
+                  .reduce((s, i) => s + round2(i.precio * i.cantidad * Number(i.comisionRegla.barberoPct) / 100), 0);
+                return <div key={b.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span style={{ color: "var(--text2)" }}>{b.nombre}</span><span style={{ fontWeight: 600 }}>C$ {fmt(monto)}</span></div>;
+              })}
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <span style={{ color: "var(--text2)" }}>Barbería</span>
+                <span style={{ fontWeight: 600 }}>C$ {fmt(carrito.filter(i => i.tipo === "servicio" && i.comisionRegla).reduce((s, i) => s + round2(i.precio * i.cantidad * Number(i.comisionRegla.barberiaPct) / 100), 0))}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Propina */}
+          {barberosEnCarrito.length > 0 && (
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ fontSize: 10, color: "var(--text2)", fontWeight: 700, letterSpacing: .5, textTransform: "uppercase" }}>¿Desea agregar propina?</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[0, 50, 100, 200].map((m) => (
+                  <button key={m} onClick={() => setPropinaMonto(m)} style={{
+                    padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer",
+                    border: Number(propinaMonto) === m ? "1px solid var(--accent)" : "1px solid var(--border)",
+                    background: Number(propinaMonto) === m ? "var(--accent-dim)" : "var(--surface2)",
+                    color: Number(propinaMonto) === m ? "var(--accent)" : "var(--text2)", fontWeight: 600,
+                  }}>{m === 0 ? "Sin propina" : `C$ ${m}`}</button>
+                ))}
+                <input type="number" min="0" placeholder="Otro" value={[0, 50, 100, 200].includes(Number(propinaMonto)) ? "" : propinaMonto}
+                  onChange={(e) => setPropinaMonto(e.target.value)}
+                  style={{ width: 70, padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--text)", fontSize: 12 }} />
+              </div>
+              {Number(propinaMonto) > 0 && barberosEnCarrito.length > 1 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  <p style={{ fontSize: 11.5, color: "var(--text2)" }}>¿Para quién es la propina?</p>
+                  {barberosEnCarrito.map((b) => (
+                    <label key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer" }}>
+                      <input type="radio" name="propinaPara" checked={propinaBarberoEfectivo === b.id} onChange={() => setPropinaBarberoId(b.id)} /> {b.nombre}
+                    </label>
+                  ))}
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, cursor: "pointer" }}>
+                    <input type="radio" name="propinaPara" checked={propinaBarberoEfectivo === "DIVIDIR"} onChange={() => setPropinaBarberoId("DIVIDIR")} /> Dividir entre todos
+                  </label>
+                </div>
+              )}
+              {Number(propinaMonto) > 0 && barberosEnCarrito.length === 1 && (
+                <p style={{ fontSize: 11.5, color: "var(--text2)" }}>Propina para <strong style={{ color: "var(--text)" }}>{barberosEnCarrito[0].nombre}</strong></p>
+              )}
+            </div>
+          )}
 
           {/* Totales y cobro */}
           <div style={{ padding: "16px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -342,6 +564,11 @@ export default function POS() {
               <input type="number" min="0" max={subtotal} value={descuento} onChange={e => setDescuento(e.target.value)}
                 style={{ width: 90, padding: "5px 8px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: 13, textAlign: "right" }} />
             </div>
+            {propinaTotal > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text2)" }}>
+                <span>Propina</span><span>C$ {fmt(propinaTotal)}</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 20, padding: "10px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
               <span>Total</span><span style={{ color: "var(--accent)" }}>C$ {fmt(total)}</span>
             </div>

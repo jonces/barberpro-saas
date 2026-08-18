@@ -327,6 +327,7 @@ model Venta {
   numeroRecibo     String      @unique
   subtotal         Decimal     @db.Decimal(10, 2)
   descuento        Decimal     @default(0) @db.Decimal(10, 2)
+  propina          Decimal     @default(0) @db.Decimal(10, 2)
   total            Decimal     @db.Decimal(10, 2)
   efectivoRecibido Decimal     @db.Decimal(10, 2)
   cambio           Decimal     @default(0) @db.Decimal(10, 2)

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Venta" ADD COLUMN     "propina" DECIMAL(10,2) NOT NULL DEFAULT 0;
