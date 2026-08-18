@@ -63,6 +63,7 @@ export const ventas = {
   list: (params = {}) => api(`/ventas?${new URLSearchParams(params)}`),
   get: (id) => api(`/ventas/${id}`),
   create: (body) => api("/ventas", { method: "POST", body }),
+  anular: (id, body) => api(`/ventas/${id}/anular`, { method: "POST", body }),
 };
 export const caja = {
   activa: () => api("/caja/activa"),

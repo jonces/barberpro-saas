@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const prisma = require("../lib/prisma");
-const { auth } = require("../middleware/auth");
+const { auth, requirePermiso } = require("../middleware/auth");
 const { resolverReglaVigente } = require("./comisiones");
 
 function generarNumeroRecibo(barberiaId) {
@@ -142,6 +142,76 @@ router.post("/", auth, async (req, res) => {
     });
 
     res.status(201).json(venta);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ── POST /:id/anular — cancelar/reembolsar una venta ────────────────────────
+// Nunca borra ni reescribe historia:
+//  - comisión todavía PENDIENTE (no entró a ninguna liquidación): se marca
+//    ANULADA directamente, no le costó nada a nadie todavía.
+//  - comisión ya LIQUIDADA (el barbero ya la vio calculada, tal vez ya
+//    cobrada): esa fila NO se toca — se crea un AJUSTE_NEGATIVO ligado al
+//    barbero, que se descontará automáticamente de su próxima liquidación.
+// Esto evita el escenario del punto 45 del spec: "no romper historia".
+router.post("/:id/anular", auth, requirePermiso("anular_ventas"), async (req, res) => {
+  try {
+    const { motivo } = req.body;
+    if (!motivo) return res.status(400).json({ error: "El motivo es obligatorio" });
+
+    const venta = await prisma.venta.findFirst({
+      where: { id: req.params.id, barberiaId: req.usuario.barberiaId },
+      include: { items: true, comisiones: true },
+    });
+    if (!venta) return res.status(404).json({ error: "No encontrada" });
+    if (venta.estado !== "COMPLETADA") return res.status(400).json({ error: "Esta venta ya está anulada o es una devolución" });
+
+    const huboLiquidadas = venta.comisiones.some((c) => c.estado === "LIQUIDADA");
+
+    const actualizada = await prisma.$transaction(async (tx) => {
+      for (const c of venta.comisiones) {
+        if (c.estado === "PENDIENTE") {
+          await tx.comision.update({ where: { id: c.id }, data: { estado: "ANULADA", motivoAnulacion: motivo } });
+        } else if (c.estado === "LIQUIDADA") {
+          await tx.adjustment.create({
+            data: {
+              barberiaId: req.usuario.barberiaId, barberoId: c.usuarioId, tipo: "AJUSTE_NEGATIVO",
+              monto: Number(c.monto) + Number(c.propina),
+              motivo: `Reembolso de venta ${venta.numeroRecibo} — ${motivo}`,
+              responsableId: req.usuario.id,
+            },
+          });
+        }
+      }
+
+      // Restock de productos vendidos
+      for (const item of venta.items.filter((i) => i.productoId)) {
+        const prod = await tx.producto.findUnique({ where: { id: item.productoId } });
+        await tx.producto.update({ where: { id: item.productoId }, data: { stock: { increment: item.cantidad } } });
+        await tx.movimientoInventario.create({
+          data: { productoId: item.productoId, tipo: "DEVOLUCION", cantidad: item.cantidad, stockAntes: prod.stock, stockDespues: prod.stock + item.cantidad, usuarioId: req.usuario.id, nota: `Anulación venta ${venta.numeroRecibo}` },
+        });
+      }
+
+      // Revertir estadísticas del cliente
+      if (venta.clienteId) {
+        await tx.cliente.update({ where: { id: venta.clienteId }, data: { totalVisitas: { decrement: 1 }, totalGastado: { decrement: venta.total } } });
+      }
+
+      // Revertir caja
+      if (venta.cajaId) {
+        await tx.caja.update({ where: { id: venta.cajaId }, data: { totalVentas: { decrement: venta.total } } });
+        await tx.movimientoCaja.create({
+          data: { barberiaId: req.usuario.barberiaId, cajaId: venta.cajaId, tipo: "SALIDA", monto: venta.total, descripcion: `Anulación venta ${venta.numeroRecibo}`, usuarioId: req.usuario.id },
+        });
+      }
+
+      return tx.venta.update({
+        where: { id: venta.id },
+        data: { estado: huboLiquidadas ? "DEVOLUCION" : "ANULADA", notas: [venta.notas, `[${huboLiquidadas ? "DEVOLUCIÓN" : "ANULADA"}] ${motivo}`].filter(Boolean).join(" · ") },
+      });
+    });
+
+    res.json(actualizada);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 

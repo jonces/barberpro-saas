@@ -139,6 +139,15 @@ export default function Reportes() {
   }
   useEffect(() => { cargar(); }, [desde, hasta]);
 
+  const usuario = usuarioActual();
+  const puedeAnular = usuario.isSuperAdmin || (usuario.permisos || []).includes("anular_ventas");
+
+  async function anularVenta(id) {
+    const motivo = window.prompt("Motivo de la anulación:");
+    if (!motivo) return;
+    try { await ventaApi.anular(id, { motivo }); cargar(); } catch (e) { alert(e.message); }
+  }
+
   const totalIngresos = ventas.reduce((s, v) => s + Number(v.total), 0);
   const ticketPromedio = ventas.length ? totalIngresos / ventas.length : 0;
 
@@ -240,10 +249,10 @@ export default function Reportes() {
               <h3 style={{ fontSize: 14, fontWeight: 600 }}>Detalle de ventas ({ventas.length})</h3>
             </div>
             <table>
-              <thead><tr><th>Recibo</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total</th><th>Estado</th></tr></thead>
+              <thead><tr><th>Recibo</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total</th><th>Estado</th>{puedeAnular && <th></th>}</tr></thead>
               <tbody>
-                {loading && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--text2)", padding: 30 }}>Cargando...</td></tr>}
-                {!loading && ventas.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--text2)", padding: 30 }}>Sin ventas en el período</td></tr>}
+                {loading && <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--text2)", padding: 30 }}>Cargando...</td></tr>}
+                {!loading && ventas.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--text2)", padding: 30 }}>Sin ventas en el período</td></tr>}
                 {ventas.map(v => (
                   <tr key={v.id}>
                     <td style={{ fontWeight: 600, fontSize: 13, color: "var(--accent)" }}>{v.numeroRecibo}</td>
@@ -252,6 +261,9 @@ export default function Reportes() {
                     <td style={{ color: "var(--text2)" }}>{v.items?.length || 0}</td>
                     <td style={{ fontWeight: 700 }}>C$ {fmt(v.total)}</td>
                     <td><span className={`badge ${v.estado === "COMPLETADA" ? "badge-green" : v.estado === "ANULADA" ? "badge-red" : "badge-yellow"}`}>{v.estado}</span></td>
+                    {puedeAnular && (
+                      <td>{v.estado === "COMPLETADA" && <button onClick={() => anularVenta(v.id)} style={{ background: "none", border: "none", color: "var(--red)", fontSize: 12.5, cursor: "pointer" }}>Cancelar</button>}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
