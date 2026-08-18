@@ -21,6 +21,7 @@ app.use("/api/citas",     require("./routes/citas"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/publico",   require("./routes/publico"));
 app.use("/api/comisiones", require("./routes/comisiones"));
+app.use("/api/liquidaciones", require("./routes/liquidaciones"));
 app.use("/api/upload",    require("./routes/upload"));
 app.use("/api/ai",        require("./routes/ai"));
 

@@ -95,6 +95,18 @@ export const comisiones = {
   crear: (body) => api("/comisiones/reglas", { method: "POST", body }),
   desactivar: (id, body) => api(`/comisiones/reglas/${id}/desactivar`, { method: "PATCH", body }),
 };
+export const liquidaciones = {
+  resumen: (params = {}) => api(`/liquidaciones/resumen?${new URLSearchParams(params)}`),
+  barberos: (params = {}) => api(`/liquidaciones/barberos?${new URLSearchParams(params)}`),
+  estadoCuenta: (barberoId, params = {}) => api(`/liquidaciones/estado-cuenta/${barberoId}?${new URLSearchParams(params)}`),
+  list: (params = {}) => api(`/liquidaciones?${new URLSearchParams(params)}`),
+  get: (id) => api(`/liquidaciones/${id}`),
+  crear: (body) => api("/liquidaciones", { method: "POST", body }),
+  pagar: (id, body) => api(`/liquidaciones/${id}/pagos`, { method: "POST", body }),
+  anular: (id, body) => api(`/liquidaciones/${id}/anular`, { method: "POST", body }),
+  adelantos: { list: (params = {}) => api(`/liquidaciones/adelantos?${new URLSearchParams(params)}`), crear: (body) => api("/liquidaciones/adelantos", { method: "POST", body }) },
+  ajustes: { list: (params = {}) => api(`/liquidaciones/ajustes?${new URLSearchParams(params)}`), crear: (body) => api("/liquidaciones/ajustes", { method: "POST", body }) },
+};
 export const citas = {
   list: (params = {}) => api(`/citas?${new URLSearchParams(params)}`),
   create: (body) => api("/citas", { method: "POST", body }),

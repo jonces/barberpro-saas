@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid, ShoppingCart, CalendarDays, Users, Scissors, Package,
-  Wallet, UserCog, BarChart3, Globe, ChevronDown, LogOut, Store,
+  Wallet, UserCog, BarChart3, Globe, ChevronDown, LogOut, Store, HandCoins,
 } from "lucide-react";
 
 const SECCIONES = [
@@ -26,7 +26,10 @@ const SECCIONES = [
   },
   {
     titulo: "PERSONAL",
-    items: [{ href: "/equipo", icon: UserCog, label: "Equipo" }],
+    items: [
+      { href: "/equipo", icon: UserCog, label: "Equipo" },
+      { href: "/liquidaciones", icon: HandCoins, label: "Liquidaciones" },
+    ],
   },
   {
     titulo: "ANÁLISIS",

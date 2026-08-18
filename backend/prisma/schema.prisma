@@ -47,6 +47,9 @@ model Barberia {
   historialComision  CommissionRuleHistory[]
   horarios           Horario[]
   comisiones         Comision[]
+  adelantos          Advance[]
+  ajustes            Adjustment[]
+  liquidaciones      Settlement[]
 }
 
 enum Plan {
@@ -79,6 +82,16 @@ model Sucursal {
   reglasComision CommissionRule[]
 }
 
+// ─── MÉTODO DE PAGO DE LIQUIDACIONES/ADELANTOS ─────────────────────────────
+// Distinto de MetodoPago (cobro al cliente en el POS): estos son desembolsos
+// de la barbería hacia el barbero, con sus propias opciones (incluye CHEQUE).
+enum MetodoPagoLiquidacion {
+  EFECTIVO
+  TRANSFERENCIA
+  CHEQUE
+  OTRO
+}
+
 // ─── USUARIO ─────────────────────────────────────────────────────────────────
 model Usuario {
   id            String    @id @default(uuid())
@@ -108,6 +121,15 @@ model Usuario {
   comisiones                Comision[]
   reglasComisionComoBarbero CommissionRule[] @relation("ComisionBarbero")
   reglasComisionCreadas     CommissionRule[] @relation("ComisionCreador")
+
+  adelantosRecibidos    Advance[]            @relation("AdelantosBarbero")
+  adelantosRegistrados  Advance[]            @relation("AdelantosResponsable")
+  ajustesRecibidos      Adjustment[]         @relation("AjustesBarbero")
+  ajustesRegistrados    Adjustment[]         @relation("AjustesResponsable")
+  liquidacionesComoBarbero Settlement[]      @relation("LiquidacionesBarbero")
+  liquidacionesCreadas     Settlement[]      @relation("LiquidacionesCreador")
+  liquidacionesAnuladas    Settlement[]      @relation("LiquidacionesAnulador")
+  pagosLiquidacionRegistrados SettlementPayment[] @relation("PagosLiquidacionRegistrador")
 }
 
 enum Rol {
@@ -396,6 +418,7 @@ model Comision {
   estado             EstadoComision @default(PENDIENTE)
   pagada             Boolean        @default(false)
   motivoAnulacion    String?
+  liquidacionId      String?
   creadoEn           DateTime       @default(now())
 
   barberia       Barberia        @relation(fields: [barberiaId], references: [id])
@@ -403,8 +426,10 @@ model Comision {
   venta          Venta           @relation(fields: [ventaId], references: [id])
   itemVenta      ItemVenta?      @relation(fields: [itemVentaId], references: [id])
   commissionRule CommissionRule? @relation(fields: [commissionRuleId], references: [id])
+  liquidacion    Settlement?     @relation(fields: [liquidacionId], references: [id])
 
   @@index([barberiaId, usuarioId, estado])
+  @@index([liquidacionId])
 }
 
 enum EstadoComision {
@@ -412,6 +437,117 @@ enum EstadoComision {
   LIQUIDADA
   PARCIAL
   ANULADA
+}
+
+// ─── ADELANTO ──────────────────────────────────────────────────────────────
+// Dinero entregado al barbero por adelantado; se descuenta de su próxima
+// liquidación. settlementId queda null hasta que una liquidación lo consume.
+model Advance {
+  id            String                @id @default(uuid())
+  barberiaId    String
+  barberoId     String
+  monto         Decimal               @db.Decimal(10, 2)
+  metodo        MetodoPagoLiquidacion @default(EFECTIVO)
+  motivo        String?
+  fecha         DateTime              @default(now())
+  responsableId String
+  settlementId  String?
+  creadoEn      DateTime              @default(now())
+
+  barberia    Barberia    @relation(fields: [barberiaId], references: [id])
+  barbero     Usuario     @relation("AdelantosBarbero", fields: [barberoId], references: [id])
+  responsable Usuario     @relation("AdelantosResponsable", fields: [responsableId], references: [id])
+  settlement  Settlement? @relation(fields: [settlementId], references: [id])
+
+  @@index([barberiaId, barberoId, settlementId])
+}
+
+// ─── AJUSTE (bono/deducción manual) ─────────────────────────────────────────
+enum TipoAjuste {
+  BONO
+  DEDUCCION
+  AJUSTE_POSITIVO
+  AJUSTE_NEGATIVO
+}
+
+model Adjustment {
+  id            String     @id @default(uuid())
+  barberiaId    String
+  barberoId     String
+  tipo          TipoAjuste
+  monto         Decimal    @db.Decimal(10, 2) // siempre positivo; el signo lo determina `tipo`
+  motivo        String
+  fecha         DateTime   @default(now())
+  responsableId String
+  settlementId  String?
+  creadoEn      DateTime   @default(now())
+
+  barberia    Barberia    @relation(fields: [barberiaId], references: [id])
+  barbero     Usuario     @relation("AjustesBarbero", fields: [barberoId], references: [id])
+  responsable Usuario     @relation("AjustesResponsable", fields: [responsableId], references: [id])
+  settlement  Settlement? @relation(fields: [settlementId], references: [id])
+
+  @@index([barberiaId, barberoId, settlementId])
+}
+
+// ─── LIQUIDACIÓN ─────────────────────────────────────────────────────────────
+// Cierra un período para un barbero: agrupa sus comisiones PENDIENTE +
+// propinas + ajustes − adelantos en un monto a pagar. Puede pagarse en varios
+// abonos (SettlementPayment) hasta saldarse. Anular NUNCA borra: revierte
+// las comisiones/adelantos/ajustes a su estado libre para que puedan
+// incluirse en una liquidación futura, dejando rastro completo.
+model Settlement {
+  id               String            @id @default(uuid())
+  barberiaId       String
+  barberoId        String
+  numero           String            @unique
+  periodoDesde     DateTime
+  periodoHasta     DateTime
+  totalComisiones  Decimal           @db.Decimal(10, 2)
+  totalPropinas    Decimal           @db.Decimal(10, 2)
+  totalBonos       Decimal           @default(0) @db.Decimal(10, 2)
+  totalDeducciones Decimal           @default(0) @db.Decimal(10, 2)
+  totalAdelantos   Decimal           @default(0) @db.Decimal(10, 2)
+  montoCalculado   Decimal           @db.Decimal(10, 2)
+  montoPagado      Decimal           @default(0) @db.Decimal(10, 2)
+  estado           EstadoLiquidacion @default(CONFIRMADA)
+  notas            String?
+  creadoPorId      String
+  anuladoPorId     String?
+  motivoAnulacion  String?
+  anuladoEn        DateTime?
+  creadoEn         DateTime          @default(now())
+
+  barberia   Barberia            @relation(fields: [barberiaId], references: [id])
+  barbero    Usuario             @relation("LiquidacionesBarbero", fields: [barberoId], references: [id])
+  creadoPor  Usuario             @relation("LiquidacionesCreador", fields: [creadoPorId], references: [id])
+  anuladoPor Usuario?            @relation("LiquidacionesAnulador", fields: [anuladoPorId], references: [id])
+  comisiones Comision[]
+  adelantos  Advance[]
+  ajustes    Adjustment[]
+  pagos      SettlementPayment[]
+
+  @@index([barberiaId, barberoId, estado])
+}
+
+enum EstadoLiquidacion {
+  CONFIRMADA
+  PAGADA
+  ANULADA
+}
+
+model SettlementPayment {
+  id              String                @id @default(uuid())
+  settlementId    String
+  monto           Decimal               @db.Decimal(10, 2)
+  metodo          MetodoPagoLiquidacion @default(EFECTIVO)
+  referencia      String?
+  notas           String?
+  registradoPorId String
+  creadoEn        DateTime              @default(now())
+
+  settlement    Settlement @relation(fields: [settlementId], references: [id])
+  registradoPor Usuario    @relation("PagosLiquidacionRegistrador", fields: [registradoPorId], references: [id])
 }
 
 // ─── REGLA DE COMISIÓN ─────────────────────────────────────────────────────────
