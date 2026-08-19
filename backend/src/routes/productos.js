@@ -40,20 +40,16 @@ router.put("/:id", auth, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// Elimina de verdad si el producto nunca tuvo movimiento (ninguna venta ni
-// ajuste de stock) — no hay nada que perder. Si ya tiene historial, no se
-// puede borrar sin corromper esos registros: se desactiva en su lugar,
-// igual que antes (desaparece de "Activos", queda visible en "Inactivos").
+// Elimina el producto de verdad, tenga o no historial de ventas. Es seguro:
+// un producto nunca genera comisión, y ItemVenta/MovimientoInventario ya
+// guardan su propio nombre/precio/subtotal en el momento de la venta, así
+// que un recibo o reporte pasado se sigue viendo igual (solo se pierde el
+// vínculo al catálogo — ver ON DELETE SET NULL en el schema).
 router.delete("/:id", auth, async (req, res) => {
   const existe = await prisma.producto.findFirst({ where: { id: req.params.id, barberiaId: req.usuario.barberiaId } });
   if (!existe) return res.status(404).json({ error: "No encontrado" });
-  try {
-    await prisma.producto.delete({ where: { id: req.params.id } });
-    res.json({ ok: true, eliminado: true });
-  } catch (e) {
-    await prisma.producto.update({ where: { id: req.params.id }, data: { estado: false } });
-    res.json({ ok: true, eliminado: false, desactivado: true });
-  }
+  await prisma.producto.delete({ where: { id: req.params.id } });
+  res.json({ ok: true, eliminado: true });
 });
 
 // Ajustar stock

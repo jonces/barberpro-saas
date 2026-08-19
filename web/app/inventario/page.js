@@ -163,11 +163,10 @@ export default function Inventario() {
   }
 
   async function eliminar(p) {
-    if (!window.confirm(`¿Eliminar "${p.nombre}"?\n\nSi nunca se ha vendido, se borra por completo. Si ya tiene historial de ventas, se desactivará en su lugar para no afectar reportes pasados.`)) return;
+    if (!window.confirm(`¿Eliminar "${p.nombre}"? Esta acción no se puede deshacer. Las ventas donde ya se vendió no se ven afectadas, solo perderán el vínculo a este producto en el catálogo.`)) return;
     try {
-      const r = await prodApi.remove(p.id);
-      if (r.eliminado) setProductos(prev => prev.filter(x => x.id !== p.id));
-      else setProductos(prev => prev.map(x => x.id === p.id ? { ...x, estado: false } : x));
+      await prodApi.remove(p.id);
+      setProductos(prev => prev.filter(x => x.id !== p.id));
     } catch (e) { alert(e.message); }
   }
 

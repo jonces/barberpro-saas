@@ -259,7 +259,7 @@ model ProveedorProducto {
   productoId  String
 
   proveedor Proveedor @relation(fields: [proveedorId], references: [id])
-  producto  Producto  @relation(fields: [productoId], references: [id])
+  producto  Producto  @relation(fields: [productoId], references: [id], onDelete: Cascade)
 
   @@id([proveedorId, productoId])
 }
@@ -267,7 +267,7 @@ model ProveedorProducto {
 // ─── MOVIMIENTO DE INVENTARIO ────────────────────────────────────────────────
 model MovimientoInventario {
   id           String         @id @default(uuid())
-  productoId   String
+  productoId   String?
   tipo         TipoMovimiento
   cantidad     Int
   stockAntes   Int
@@ -276,7 +276,12 @@ model MovimientoInventario {
   usuarioId    String?
   creadoEn     DateTime       @default(now())
 
-  producto Producto @relation(fields: [productoId], references: [id])
+  // Un producto puede eliminarse aunque ya se haya vendido: no genera
+  // comisión ni afecta ningún total de caja/venta ya calculado (esos
+  // quedaron fijados en ItemVenta/Venta al momento de la venta). Al
+  // borrar el producto, este movimiento queda huérfano (productoId null)
+  // pero conserva tipo/cantidad/fecha como rastro de auditoría.
+  producto Producto? @relation(fields: [productoId], references: [id], onDelete: SetNull)
 }
 
 enum TipoMovimiento {
@@ -396,7 +401,10 @@ model ItemVenta {
 
   venta      Venta      @relation(fields: [ventaId], references: [id])
   servicio   Servicio?  @relation(fields: [servicioId], references: [id])
-  producto   Producto?  @relation(fields: [productoId], references: [id])
+  // Ya tenía ON DELETE SET NULL en la base de datos (ver migración init) —
+  // el nombre/precio/subtotal quedan fijos en esta fila, así que el recibo
+  // histórico se sigue viendo bien aunque el producto se elimine después.
+  producto   Producto?  @relation(fields: [productoId], references: [id], onDelete: SetNull)
   comisiones Comision[]
 }
 
