@@ -119,6 +119,7 @@ export default function Caja() {
 
           {view === "movimientos" && (
             <div className="card" style={{ overflow: "hidden" }}>
+              <div style={{ overflowX: "auto" }}>
               <table>
                 <thead><tr><th>Tipo</th><th>Descripción</th><th>Monto</th><th>Hora</th></tr></thead>
                 <tbody>
@@ -133,11 +134,13 @@ export default function Caja() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
           {view === "ventas" && (
             <div className="card" style={{ overflow: "hidden" }}>
+              <div style={{ overflowX: "auto" }}>
               <table>
                 <thead><tr><th>Recibo</th><th>Cliente</th><th>Items</th><th>Total</th><th>Hora</th></tr></thead>
                 <tbody>
@@ -153,6 +156,7 @@ export default function Caja() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 

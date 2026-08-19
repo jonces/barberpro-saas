@@ -143,7 +143,7 @@ export default function Equipo() {
     }>
       {modal !== null && <Modal usuario={modal} onClose={() => setModal(null)} onSave={handleSave} />}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
           { label: "Total miembros", value: usuarios.length, icon: "👥" },
           { label: "Activos", value: usuarios.filter(u => u.estado).length, icon: "✅" },

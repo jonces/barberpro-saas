@@ -66,7 +66,7 @@ export default function Clientes() {
       {modal !== null && <Modal cliente={modal} onClose={() => setModal(null)} onSave={handleSave} />}
 
       {/* Stats rápidas */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
           { label: "Total clientes", value: clientes.length, icon: "👤" },
           { label: "Visitas totales", value: clientes.reduce((s, c) => s + c.totalVisitas, 0), icon: "✂️" },
@@ -86,6 +86,7 @@ export default function Clientes() {
 
       {/* Tabla */}
       <div className="card" style={{ overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
         <table>
           <thead><tr><th>Cliente</th><th>Teléfono</th><th>Visitas</th><th>Total gastado</th><th>Última visita</th><th></th></tr></thead>
           <tbody>
@@ -108,6 +109,7 @@ export default function Clientes() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </AppLayout>
   );

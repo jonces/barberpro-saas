@@ -165,7 +165,7 @@ export default function Servicios() {
       {modal !== null && <Modal item={modal} categorias={categorias} onClose={() => setModal(null)} onSave={handleSave} />}
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
           { label: "Total servicios", value: servicios.length, icon: "✂️", color: "var(--accent)" },
           { label: "Activos", value: servicios.filter(s => s.estado).length, icon: "✅", color: "var(--green)" },

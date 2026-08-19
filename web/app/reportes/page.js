@@ -198,7 +198,7 @@ export default function Reportes() {
       {tab === "comisiones" ? <ReporteComisiones desde={desde} hasta={hasta} /> : (
         <>
           {/* KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 24 }}>
             {[
               { label: "Total ventas", value: ventas.length, icon: "🧾", color: "var(--text)" },
               { label: "Ingresos", value: `C$ ${fmt(totalIngresos)}`, icon: "💰", color: "var(--accent)" },
@@ -214,7 +214,7 @@ export default function Reportes() {
           </div>
 
           {/* Gráficos */}
-          <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16, marginBottom: 20 }}>
+          <div className="reportes-charts-grid" style={{ display: "grid", gap: 16, marginBottom: 20 }}>
             <div className="card" style={{ padding: 20 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Ingresos por día</h3>
               {loading ? <p style={{ color: "var(--text2)", textAlign: "center", padding: 40 }}>Cargando...</p> : (
@@ -248,6 +248,7 @@ export default function Reportes() {
             <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ fontSize: 14, fontWeight: 600 }}>Detalle de ventas ({ventas.length})</h3>
             </div>
+            <div style={{ overflowX: "auto" }}>
             <table>
               <thead><tr><th>Recibo</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total</th><th>Estado</th>{puedeAnular && <th></th>}</tr></thead>
               <tbody>
@@ -268,6 +269,7 @@ export default function Reportes() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}

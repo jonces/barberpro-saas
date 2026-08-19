@@ -88,7 +88,7 @@ export default function Superadmin() {
       {modal && <ModalBarberia onClose={() => setModal(false)} onSave={(b) => { setLista(p => [b, ...p]); setModal(false); }} />}
 
       {/* Stats globales */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 28 }}>
         {[
           { label: "Total barberías", value: data?.totalBarberias || 0, icon: "✂️", color: "var(--accent)" },
           { label: "Activas", value: data?.activas || 0, icon: "✅", color: "var(--green)" },
@@ -108,6 +108,7 @@ export default function Superadmin() {
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <h3 style={{ fontSize: 14, fontWeight: 600 }}>Todas las barberías ({lista.length})</h3>
         </div>
+        <div style={{ overflowX: "auto" }}>
         <table>
           <thead><tr><th>Barbería</th><th>Ciudad</th><th>Plan</th><th>Usuarios</th><th>Clientes</th><th>Ventas</th><th>Estado</th><th>Registrada</th><th></th></tr></thead>
           <tbody>
@@ -134,6 +135,7 @@ export default function Superadmin() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </AppLayout>
   );

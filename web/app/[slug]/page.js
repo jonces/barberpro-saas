@@ -30,6 +30,7 @@ export default function PublicPage() {
   const [carrito, setCarrito] = useState([]);
   const [step, setStep] = useState("inicio");
   const [activeNav, setActiveNav] = useState("Inicio");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [form, setForm] = useState({ nombre: "", telefono: "", barberoId: "", fecha: "", hora: "", notas: "" });
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -113,8 +114,8 @@ export default function PublicPage() {
               <p style={{ fontSize: 12, color: "#888", margin: 0 }}>{barberia?.ciudad || ""}</p>
             </div>
           </div>
-          {/* Nav links */}
-          <nav style={{ display: "flex", gap: 4 }}>
+          {/* Nav links (se ocultan en móvil, ver hamburguesa) */}
+          <nav className="public-nav-links" style={{ display: "flex", gap: 4 }}>
             {NAV_LINKS.map(n => (
               <button key={n} onClick={() => { setActiveNav(n); if (n === "Servicios") setStep("servicios"); else if (n === "Productos") setStep("productos"); else setStep("inicio"); }}
                 style={{ background: "none", border: "none", color: activeNav === n ? "#d4af37" : "#aaa", cursor: "pointer", fontSize: 14, fontWeight: activeNav === n ? 700 : 400, padding: "8px 14px", borderBottom: activeNav === n ? "2px solid #d4af37" : "2px solid transparent", transition: "all .15s" }}>
@@ -123,15 +124,15 @@ export default function PublicPage() {
             ))}
           </nav>
           {/* Right actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {barberia?.telefono && (
               <a href={`tel:${barberia.telefono}`}
-                style={{ display: "flex", alignItems: "center", gap: 8, background: "#1a2035", border: "1px solid #2a3050", borderRadius: 8, padding: "8px 16px", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
-                📞 {barberia.telefono}
+                style={{ display: "flex", alignItems: "center", gap: 8, background: "#1a2035", border: "1px solid #2a3050", borderRadius: 8, padding: "8px 16px", color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}>
+                📞 <span className="public-phone-label">{barberia.telefono}</span>
               </a>
             )}
             <button onClick={() => setStep("datos")}
-              style={{ display: "flex", alignItems: "center", gap: 8, background: "#d4af37", borderRadius: 8, padding: "8px 16px", color: "#000", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, position: "relative" }}>
+              style={{ display: "flex", alignItems: "center", gap: 8, background: "#d4af37", borderRadius: 8, padding: "8px 16px", color: "#000", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, position: "relative", flexShrink: 0 }}>
               🛒
               {sidebarItems.length > 0 && (
                 <span style={{ background: "#e74c3c", color: "#fff", borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
@@ -139,8 +140,24 @@ export default function PublicPage() {
                 </span>
               )}
             </button>
+            {/* Hamburguesa — solo visible en móvil/tablet */}
+            <button className="public-nav-toggle" onClick={() => setMenuOpen(v => !v)} aria-label="Abrir menú"
+              style={{ display: "none", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 8, background: "#1a2035", border: "1px solid #2a3050", color: "#fff", cursor: "pointer", fontSize: 18, flexShrink: 0 }}>
+              {menuOpen ? "✕" : "☰"}
+            </button>
           </div>
         </div>
+        {/* Menú móvil desplegable */}
+        {menuOpen && (
+          <nav className="public-nav-mobile" style={{ display: "flex", flexDirection: "column", padding: "8px 24px 16px", borderTop: "1px solid #1e2330" }}>
+            {NAV_LINKS.map(n => (
+              <button key={n} onClick={() => { setActiveNav(n); setMenuOpen(false); if (n === "Servicios") setStep("servicios"); else if (n === "Productos") setStep("productos"); else setStep("inicio"); }}
+                style={{ background: "none", border: "none", color: activeNav === n ? "#d4af37" : "#ccc", cursor: "pointer", fontSize: 15, fontWeight: activeNav === n ? 700 : 400, padding: "12px 4px", textAlign: "left", borderBottom: "1px solid #1a2035" }}>
+                {n}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px" }}>
@@ -172,7 +189,7 @@ export default function PublicPage() {
 
         ) : step === "datos" ? (
           /* FORMULARIO DATOS */
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 28, padding: "40px 0", alignItems: "start" }}>
+          <div className="public-sidebar-grid" style={{ display: "grid", gap: 28, padding: "40px 0", alignItems: "start" }}>
             <div>
               <button onClick={() => setStep("servicios")} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: 14, marginBottom: 24, padding: 0 }}>← Volver a servicios</button>
               <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 24 }}>Tus datos</h2>
@@ -246,11 +263,11 @@ export default function PublicPage() {
 
         ) : (
           /* PÁGINA PRINCIPAL */
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, paddingTop: 32, alignItems: "start" }}>
+          <div className="public-sidebar-grid" style={{ display: "grid", gap: 28, paddingTop: 32, alignItems: "start" }}>
             <div>
               {/* HERO */}
-              <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 40, position: "relative", background: "linear-gradient(135deg, #0d1117 0%, #1a2035 100%)", minHeight: 280, display: "flex", alignItems: "center" }}>
-                <div style={{ padding: "40px 48px", flex: 1 }}>
+              <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 40, position: "relative", background: "linear-gradient(135deg, #0d1117 0%, #1a2035 100%)", minHeight: 280, display: "flex", flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ padding: "40px 48px", flex: "1 1 260px" }}>
                   <p style={{ color: "#d4af37", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>BIENVENIDO A {barberia?.nombre?.toUpperCase()}</p>
                   <h1 style={{ fontSize: 38, fontWeight: 900, lineHeight: 1.15, marginBottom: 16, color: "#fff" }}>Tu estilo,<br />nuestra pasión</h1>
                   <p style={{ color: "#aaa", fontSize: 15, marginBottom: 28, maxWidth: 360 }}>Reserva tu cita y disfruta de la mejor experiencia en cortes, barbas y productos de calidad profesional.</p>
@@ -266,7 +283,7 @@ export default function PublicPage() {
                     ))}
                   </div>
                 </div>
-                <div style={{ width: 340, height: 280, flexShrink: 0, overflow: "hidden", position: "relative" }}>
+                <div style={{ width: 340, maxWidth: "100%", height: 280, flexGrow: 1, flexShrink: 0, overflow: "hidden", position: "relative" }}>
                   <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=680&q=80" alt="Barbería"
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     onError={e => e.target.style.display = "none"} />
@@ -432,7 +449,7 @@ export default function PublicPage() {
 
         {/* Vista todos los servicios */}
         {step === "servicios" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, padding: "40px 0", alignItems: "start" }}>
+          <div className="public-sidebar-grid" style={{ display: "grid", gap: 28, padding: "40px 0", alignItems: "start" }}>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Todos los Servicios</h2>
               <p style={{ color: "#888", marginBottom: 24 }}>Selecciona los servicios que deseas</p>

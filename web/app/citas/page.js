@@ -71,7 +71,7 @@ function ModalCita({ onClose, onSave }) {
             </select>
           </div>
           {/* Fecha y hora */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 12 }}>
             <div style={{ gridColumn: "span 1" }}><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Fecha *</label><input className="input" type="date" required value={form.fecha} onChange={e => set("fecha", e.target.value)} /></div>
             <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Hora *</label><input className="input" type="time" required value={form.hora} onChange={e => set("hora", e.target.value)} /></div>
             <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Duración (min)</label><input className="input" type="number" min="5" value={form.duracion} onChange={e => set("duracion", Number(e.target.value))} /></div>

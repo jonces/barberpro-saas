@@ -187,7 +187,7 @@ export default function Inventario() {
       {stockModal && <ModalStock producto={stockModal} onClose={() => setStockModal(null)} onSave={() => { setStockModal(null); cargar(); }} />}
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 24 }}>
         {[
           { label: "Total productos", value: productos.length, icon: "📦", color: "var(--text)" },
           { label: "Valor inventario", value: `C$ ${fmt(productos.reduce((s, p) => s + p.stock * Number(p.costo), 0))}`, icon: "💎", color: "var(--accent)" },

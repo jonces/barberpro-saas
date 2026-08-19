@@ -111,15 +111,33 @@
 .dash-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .dash-profile-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
 .pos-grid { grid-template-columns: 1fr 380px; }
+.reportes-charts-grid { grid-template-columns: 3fr 2fr; }
+/* Página pública de reservas — contenido + resumen lateral fijo */
+.public-sidebar-grid { grid-template-columns: 1fr 320px; }
 
 @media (max-width: 1180px) {
   .dash-kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .dash-main-grid { grid-template-columns: 1fr; }
   .dash-secondary-grid { grid-template-columns: 1fr 1fr; }
   .dash-profile-grid { grid-template-columns: 1fr; }
+  .reportes-charts-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
   .pos-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .public-sidebar-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 780px) {
+  .public-nav-links { display: none !important; }
+  .public-nav-toggle { display: inline-flex !important; }
+}
+@media (max-width: 480px) {
+  .public-phone-label { display: none; }
+}
+.public-nav-mobile { display: none; }
+@media (max-width: 780px) {
+  .public-nav-mobile { display: flex; }
 }
 @media (max-width: 700px) {
   .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
