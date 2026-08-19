@@ -162,6 +162,15 @@ export default function Inventario() {
     setModal(null);
   }
 
+  async function eliminar(p) {
+    if (!window.confirm(`¿Eliminar "${p.nombre}"?\n\nSi nunca se ha vendido, se borra por completo. Si ya tiene historial de ventas, se desactivará en su lugar para no afectar reportes pasados.`)) return;
+    try {
+      const r = await prodApi.remove(p.id);
+      if (r.eliminado) setProductos(prev => prev.filter(x => x.id !== p.id));
+      else setProductos(prev => prev.map(x => x.id === p.id ? { ...x, estado: false } : x));
+    } catch (e) { alert(e.message); }
+  }
+
   const filtrados = productos.filter(p => {
     if (filtro === "bajo_stock") return p.stock <= p.stockMinimo && p.estado;
     if (filtro === "inactivos") return !p.estado;
@@ -251,6 +260,7 @@ export default function Inventario() {
                   <div style={{ display: "flex", gap: 6 }}>
                     <button className="btn btn-primary" onClick={() => setModal(p)} style={{ flex: 2, fontSize: 12 }}>✏️ Editar</button>
                     <button onClick={() => setStockModal(p)} style={{ flex: 1, fontSize: 12, padding: "8px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(212,175,55,.12)", color: "var(--accent)", fontWeight: 600 }}>📥 Stock</button>
+                    <button onClick={() => eliminar(p)} title="Eliminar" style={{ fontSize: 12, padding: "8px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,.12)", color: "var(--red)", fontWeight: 600 }}>🗑</button>
                   </div>
                 </div>
               </div>

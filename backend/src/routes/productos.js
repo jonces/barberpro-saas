@@ -33,14 +33,27 @@ router.post("/", auth, async (req, res) => {
 
 router.put("/:id", auth, async (req, res) => {
   try {
+    const existe = await prisma.producto.findFirst({ where: { id: req.params.id, barberiaId: req.usuario.barberiaId } });
+    if (!existe) return res.status(404).json({ error: "No encontrado" });
     const p = await prisma.producto.update({ where: { id: req.params.id }, data: sanitizar(req.body) });
     res.json(p);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+// Elimina de verdad si el producto nunca tuvo movimiento (ninguna venta ni
+// ajuste de stock) — no hay nada que perder. Si ya tiene historial, no se
+// puede borrar sin corromper esos registros: se desactiva en su lugar,
+// igual que antes (desaparece de "Activos", queda visible en "Inactivos").
 router.delete("/:id", auth, async (req, res) => {
-  await prisma.producto.update({ where: { id: req.params.id }, data: { estado: false } });
-  res.json({ ok: true });
+  const existe = await prisma.producto.findFirst({ where: { id: req.params.id, barberiaId: req.usuario.barberiaId } });
+  if (!existe) return res.status(404).json({ error: "No encontrado" });
+  try {
+    await prisma.producto.delete({ where: { id: req.params.id } });
+    res.json({ ok: true, eliminado: true });
+  } catch (e) {
+    await prisma.producto.update({ where: { id: req.params.id }, data: { estado: false } });
+    res.json({ ok: true, eliminado: false, desactivado: true });
+  }
 });
 
 // Ajustar stock
