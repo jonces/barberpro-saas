@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import AppLayout from "@/components/layout/AppLayout";
 import { liquidaciones as liqApi } from "@/lib/api";
 import {
-  DollarSign, Scissors, HandCoins, Clock, CheckCircle2, Gift, ArrowRight,
+  DollarSign, Scissors, HandCoins, Clock, CheckCircle2, Gift, ArrowRight, AlertCircle,
 } from "lucide-react";
 
 const fmt = (n) => new Intl.NumberFormat("es-NI").format(Number(n) || 0);
@@ -43,6 +43,8 @@ function KpiCard({ icon: Icon, iconColor, label, value, sub }) {
   );
 }
 
+const ERRORES_SESION = ["Token requerido", "Token inválido", "Sin acceso"];
+
 export default function Liquidaciones() {
   const router = useRouter();
   const [periodo, setPeriodo] = useState("semana");
@@ -51,13 +53,21 @@ export default function Liquidaciones() {
   const [hastaCustom, setHastaCustom] = useState(hoyIso);
   const [resumen, setResumen] = useState(null);
   const [barberos, setBarberos] = useState(null);
+  const [error, setError] = useState(null);
 
   const cargar = useCallback(() => {
     const { desde, hasta } = rangoPara(periodo, desdeCustom, hastaCustom);
     Promise.all([liqApi.resumen({ desde, hasta }), liqApi.barberos({ desde, hasta })])
-      .then(([r, b]) => { setResumen(r); setBarberos(b); })
-      .catch(() => { setResumen({}); setBarberos([]); });
-  }, [periodo, desdeCustom, hastaCustom]);
+      .then(([r, b]) => { setResumen(r); setBarberos(b); setError(null); })
+      .catch((e) => {
+        if (ERRORES_SESION.includes(e.message)) {
+          localStorage.removeItem("token"); localStorage.removeItem("usuario");
+          router.replace("/login");
+          return;
+        }
+        setError(e.message);
+      });
+  }, [periodo, desdeCustom, hastaCustom, router]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -85,6 +95,14 @@ export default function Liquidaciones() {
           )}
         </div>
       </div>
+
+      {error && (
+        <div className="card-glass" style={{ padding: 24, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 22 }}>
+          <AlertCircle size={24} color="var(--red)" />
+          <p style={{ fontSize: 13, color: "var(--text2)" }}>{error}</p>
+          <button className="btn btn-primary" onClick={cargar} style={{ marginTop: 4 }}>Reintentar</button>
+        </div>
+      )}
 
       <div className="dash-kpi-grid" style={{ marginBottom: 22 }}>
         <KpiCard icon={Scissors} iconColor="#d4af37" label="Ventas de servicios" value={resumen ? `C$ ${fmt(resumen.ventasServicios)}` : "—"} />

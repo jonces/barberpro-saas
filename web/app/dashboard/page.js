@@ -103,9 +103,12 @@ function KpiCard({ icon: Icon, iconColor, label, value, sub, extra, locked, righ
   );
 }
 
+const ERRORES_SESION = ["Token requerido", "Token inválido", "Sin acceso"];
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [periodo, setPeriodo] = useState("7d");
   const [usuario] = useState(() => (typeof window !== "undefined" ? JSON.parse(localStorage.getItem("usuario") || "{}") : {}));
   const router = useRouter();
@@ -114,10 +117,19 @@ export default function Dashboard() {
     if (usuario.rol === "SUPERADMIN") router.replace("/superadmin");
   }, [usuario.rol, router]);
 
-  useEffect(() => {
+  function cargar() {
     if (usuario.rol === "SUPERADMIN") return;
-    dashboard.get(periodo).then(setData).catch(console.error).finally(() => setLoading(false));
-  }, [periodo, usuario.rol]);
+    dashboard.get(periodo).then((d) => { setData(d); setError(null); }).catch((e) => {
+      if (ERRORES_SESION.includes(e.message)) {
+        localStorage.removeItem("token"); localStorage.removeItem("usuario");
+        router.replace("/login");
+        return;
+      }
+      setError(e.message);
+    }).finally(() => setLoading(false));
+  }
+
+  useEffect(() => { cargar(); }, [periodo, usuario.rol]);
 
   const nombre = usuario.nombre || "";
   const barberiaNombre = usuario.barberia?.nombre || "tu barbería";
@@ -145,7 +157,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {loading || !data ? <DashboardSkeleton /> : (
+      {error ? (
+        <div className="card-glass" style={{ padding: 32, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <AlertCircle size={28} color="var(--red)" />
+          <p style={{ fontSize: 15, fontWeight: 600 }}>No se pudo cargar el dashboard</p>
+          <p style={{ fontSize: 13, color: "var(--text2)" }}>{error}</p>
+          <button className="btn btn-primary" onClick={cargar} style={{ marginTop: 6 }}>Reintentar</button>
+        </div>
+      ) : loading || !data ? <DashboardSkeleton /> : (
         <>
           {/* KPIs */}
           <div className="dash-kpi-grid" style={{ marginBottom: 16 }}>

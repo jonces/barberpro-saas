@@ -11,6 +11,7 @@ const fmt = (n) => new Intl.NumberFormat("es-NI").format(Number(n) || 0);
 const fmtFecha = (d) => d ? new Intl.DateTimeFormat("es-NI", { day: "numeric", month: "short", year: "numeric" }).format(new Date(d)) : "—";
 const fmtFechaHora = (d) => d ? new Intl.DateTimeFormat("es-NI", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(d)) : "—";
 const ROLES_GESTOR = ["ADMIN", "GERENTE_GENERAL", "SUPERVISOR"];
+const ERRORES_SESION = ["Token requerido", "Token inválido", "Sin acceso"];
 const ESTADO_BADGE = { PENDIENTE: "badge-yellow", LIQUIDADA: "badge-green", PARCIAL: "badge-blue", ANULADA: "badge-red" };
 const METODOS = [["EFECTIVO", "Efectivo"], ["TRANSFERENCIA", "Transferencia"], ["CHEQUE", "Cheque"], ["OTRO", "Otro"]];
 
@@ -261,6 +262,7 @@ export default function EstadoCuenta() {
   const searchParams = useSearchParams();
   const [cuenta, setCuenta] = useState(null);
   const [historial, setHistorial] = useState([]);
+  const [error, setError] = useState(null);
   const [modal, setModal] = useState(searchParams.get("liquidar") === "1" ? "liquidar" : null);
   const yo = usuarioActual();
   const puede = puedeGestionar(yo);
@@ -273,8 +275,15 @@ export default function EstadoCuenta() {
     Promise.all([
       liqApi.estadoCuenta(barberoId, { desde, hasta }),
       liqApi.list({ barberoId }),
-    ]).then(([c, h]) => { setCuenta(c); setHistorial(h); });
-  }, [barberoId, desde, hasta]);
+    ]).then(([c, h]) => { setCuenta(c); setHistorial(h); setError(null); }).catch((e) => {
+      if (ERRORES_SESION.includes(e.message)) {
+        localStorage.removeItem("token"); localStorage.removeItem("usuario");
+        router.replace("/login");
+        return;
+      }
+      setError(e.message);
+    });
+  }, [barberoId, desde, hasta, router]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -290,6 +299,16 @@ export default function EstadoCuenta() {
     try { await liqApi.anular(id, { motivo }); cargar(); } catch (e) { alert(e.message); }
   }
 
+  if (error) return (
+    <AppLayout>
+      <div className="card-glass" style={{ padding: 32, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, maxWidth: 420, margin: "40px auto" }}>
+        <AlertTriangle size={26} color="var(--red)" />
+        <p style={{ fontSize: 15, fontWeight: 600 }}>No se pudo cargar el estado de cuenta</p>
+        <p style={{ fontSize: 13, color: "var(--text2)" }}>{error}</p>
+        <button className="btn btn-primary" onClick={cargar} style={{ marginTop: 6 }}>Reintentar</button>
+      </div>
+    </AppLayout>
+  );
   if (!cuenta) return <AppLayout><p style={{ color: "var(--text2)" }}>Cargando...</p></AppLayout>;
 
   return (
