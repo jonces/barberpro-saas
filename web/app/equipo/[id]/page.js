@@ -244,7 +244,7 @@ export default function PerfilBarbero() {
         </div>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700 }}>{nombreCompleto}</h1>
-          <p style={{ fontSize: 13, color: "var(--text2)" }}>{ROL_LABEL[usuario.rol] || usuario.rol} · {usuario.email}</p>
+          <p style={{ fontSize: 13, color: "var(--text2)" }}>{ROL_LABEL[usuario.rol] || usuario.rol} · {usuario.sinAcceso ? (usuario.cedula ? `Cédula: ${usuario.cedula}` : "Sin acceso al sistema") : usuario.email}</p>
         </div>
       </div>
 

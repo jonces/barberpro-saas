@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const prisma = require("../lib/prisma");
 const { auth } = require("../middleware/auth");
 
@@ -17,28 +18,46 @@ const PERMISOS_DEFAULT = {
 
 router.get("/", auth, async (req, res) => {
   const where = req.usuario.isSuperAdmin ? {} : { barberiaId: req.usuario.barberiaId };
-  const usuarios = await prisma.usuario.findMany({ where, select: { id:true,nombre:true,apellido:true,email:true,telefono:true,foto:true,rol:true,permisos:true,estado:true,ultimoAcceso:true,creadoEn:true,sucursal:true } });
-  res.json(usuarios);
+  const usuarios = await prisma.usuario.findMany({ where, select: { id:true,nombre:true,apellido:true,email:true,telefono:true,cedula:true,foto:true,rol:true,permisos:true,estado:true,ultimoAcceso:true,creadoEn:true,sucursal:true } });
+  // El correo autogenerado de un barbero sin acceso es un detalle interno
+  // (garantiza unicidad en la BD) — no tiene sentido mostrarlo en la UI.
+  res.json(usuarios.map(u => u.email.endsWith("@sin-acceso.invalid") ? { ...u, email: null, sinAcceso: true } : u));
 });
 
+// Un BARBERO es, ante todo, un perfil de staff: solo necesita nombre. No
+// inicia sesión en el sistema, así que correo y contraseña son opcionales —
+// si no llegan, se genera un correo interno único (nunca resoluble, dominio
+// reservado .invalid) y una contraseña aleatoria que nadie conoce, para que
+// la fila cumpla las columnas NOT NULL/UNIQUE sin abrir una puerta de acceso
+// real. El resto de roles (quienes sí operan el sistema) siguen requiriendo
+// correo y contraseña reales como antes.
 router.post("/", auth, async (req, res) => {
   try {
-    const { nombre, apellido, email, password, rol, telefono, sucursalId, permisos } = req.body;
-    const hash = await bcrypt.hash(password, 10);
+    const { nombre, apellido, email, password, rol, telefono, sucursalId, permisos, cedula } = req.body;
+    const rolFinal = rol || "BARBERO";
+    const sinAcceso = rolFinal === "BARBERO" && !email;
+
+    if (!sinAcceso && !email) return res.status(400).json({ error: "El correo es obligatorio para este rol" });
+    if (!sinAcceso && !password) return res.status(400).json({ error: "La contraseña es obligatoria para este rol" });
+
+    const emailFinal = sinAcceso ? `barbero.${crypto.randomBytes(8).toString("hex")}@sin-acceso.invalid` : email.toLowerCase();
+    const passwordFinal = sinAcceso ? crypto.randomBytes(24).toString("hex") : password;
+    const hash = await bcrypt.hash(passwordFinal, 10);
+
     const usuario = await prisma.usuario.create({
       data: {
-        nombre, apellido, email: email.toLowerCase(), password: hash, rol: rol || "BARBERO",
-        telefono, sucursalId,
+        nombre, apellido, email: emailFinal, password: hash, rol: rolFinal,
+        telefono, sucursalId, cedula: cedula || null,
         barberiaId: req.usuario.isSuperAdmin ? req.body.barberiaId : req.usuario.barberiaId,
-        permisos: permisos || PERMISOS_DEFAULT[rol] || [],
+        permisos: permisos || PERMISOS_DEFAULT[rolFinal] || [],
       },
-      select: { id:true,nombre:true,apellido:true,email:true,rol:true,permisos:true,estado:true },
+      select: { id:true,nombre:true,apellido:true,email:true,rol:true,permisos:true,estado:true,cedula:true },
     });
-    res.status(201).json(usuario);
+    res.status(201).json(sinAcceso ? { ...usuario, email: null, sinAcceso: true } : usuario);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-const CAMPOS_EDITABLES = ["nombre","apellido","email","telefono","foto","rol","permisos","estado","sucursalId","barberiaId"];
+const CAMPOS_EDITABLES = ["nombre","apellido","email","telefono","cedula","foto","rol","permisos","estado","sucursalId","barberiaId"];
 
 router.put("/:id", auth, async (req, res) => {
   try {

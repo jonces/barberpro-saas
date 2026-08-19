@@ -31,10 +31,11 @@ const TODOS_PERMISOS = [
 
 function Modal({ usuario, onClose, onSave }) {
   const [form, setForm] = useState(usuario?.id
-    ? { ...usuario, password: "" }
-    : { nombre: "", apellido: "", email: "", password: "", telefono: "", rol: "BARBERO", permisos: [] });
+    ? { ...usuario, email: usuario.email || "", password: "" }
+    : { nombre: "", apellido: "", email: "", password: "", telefono: "", cedula: "", rol: "BARBERO", permisos: [] });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const barberoSinAcceso = form.rol === "BARBERO";
 
   function togglePermiso(key) {
     const permisos = form.permisos || [];
@@ -44,8 +45,12 @@ function Modal({ usuario, onClose, onSave }) {
   async function handleSubmit(e) {
     e.preventDefault(); setLoading(true);
     try {
-      const { nombre, apellido, email, telefono, rol, permisos, password } = form;
-      const data = { nombre, apellido, email, telefono, rol, permisos };
+      const { nombre, apellido, email, telefono, cedula, rol, permisos, password } = form;
+      const data = { nombre, apellido, telefono, cedula, rol, permisos };
+      // Un barbero sin correo propio no manda "email": el backend genera uno
+      // interno. Si ya tenía uno real (p. ej. se le cambió el rol después),
+      // se respeta y se sigue enviando para no perder el acceso que ya tenía.
+      if (!(barberoSinAcceso && !email)) data.email = email;
       if (password) data.password = password;
       const result = form.id ? await userApi.update(form.id, data) : await userApi.create(data);
       onSave(result);
@@ -60,23 +65,37 @@ function Modal({ usuario, onClose, onSave }) {
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text2)", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Rol *</label>
+            <select className="input" value={form.rol} onChange={e => set("rol", e.target.value)}>
+              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Nombre *</label><input className="input" required value={form.nombre} onChange={e => set("nombre", e.target.value)} /></div>
+            <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Nombre completo *</label><input className="input" required value={form.nombre} onChange={e => set("nombre", e.target.value)} /></div>
             <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Apellido</label><input className="input" value={form.apellido || ""} onChange={e => set("apellido", e.target.value)} /></div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Email *</label><input className="input" type="email" required value={form.email} onChange={e => set("email", e.target.value)} /></div>
-            <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Teléfono</label><input className="input" value={form.telefono || ""} onChange={e => set("telefono", e.target.value)} /></div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Rol *</label>
-              <select className="input" value={form.rol} onChange={e => set("rol", e.target.value)}>
-                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-            <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>{form.id ? "Nueva contraseña (opcional)" : "Contraseña *"}</label><input className="input" type="password" required={!form.id} value={form.password} onChange={e => set("password", e.target.value)} /></div>
-          </div>
+
+          {barberoSinAcceso ? (
+            <>
+              <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface2)", fontSize: 12.5, color: "var(--text2)" }}>
+                Los barberos son un perfil de staff: no inician sesión en BarberPro. Solo hace falta su nombre — cédula y teléfono son opcionales.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Cédula (opcional)</label><input className="input" value={form.cedula || ""} onChange={e => set("cedula", e.target.value)} /></div>
+                <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Teléfono (opcional)</label><input className="input" value={form.telefono || ""} onChange={e => set("telefono", e.target.value)} /></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Email *</label><input className="input" type="email" required value={form.email} onChange={e => set("email", e.target.value)} /></div>
+                <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>Teléfono</label><input className="input" value={form.telefono || ""} onChange={e => set("telefono", e.target.value)} /></div>
+              </div>
+              <div><label style={{ fontSize: 12, color: "var(--text2)", display: "block", marginBottom: 5 }}>{form.id ? "Nueva contraseña (opcional)" : "Contraseña *"}</label><input className="input" type="password" required={!form.id} value={form.password} onChange={e => set("password", e.target.value)} /></div>
+            </>
+          )}
 
           {/* Permisos */}
           <div>
@@ -147,12 +166,13 @@ export default function Equipo() {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontWeight: 700 }}>{u.nombre} {u.apellido || ""}</p>
-                <p style={{ fontSize: 12, color: "var(--text2)" }}>{u.email}</p>
+                <p style={{ fontSize: 12, color: "var(--text2)" }}>{u.sinAcceso ? (u.cedula ? `Cédula: ${u.cedula}` : "Sin acceso al sistema") : u.email}</p>
               </div>
             </Link>
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
               <span className={`badge ${ROL_COLOR[u.rol] || "badge-gray"}`}>{u.rol}</span>
               <span className={`badge ${u.estado ? "badge-green" : "badge-red"}`}>{u.estado ? "Activo" : "Inactivo"}</span>
+              {u.sinAcceso && <span className="badge badge-gray">Sin login</span>}
             </div>
             <p style={{ fontSize: 12, color: "var(--text2)", marginBottom: 14 }}>
               {u.telefono || "Sin teléfono"} · {(u.permisos || []).length} permisos

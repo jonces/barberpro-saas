@@ -102,6 +102,7 @@ model Usuario {
   email         String    @unique
   password      String
   telefono      String?
+  cedula        String?
   foto          String?
   rol           Rol       @default(BARBERO)
   permisos      Json      @default("[]")
