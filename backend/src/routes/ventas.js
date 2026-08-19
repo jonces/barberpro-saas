@@ -155,6 +155,12 @@ router.post("/", auth, async (req, res) => {
 // Esto evita el escenario del punto 45 del spec: "no romper historia".
 router.post("/:id/anular", auth, requirePermiso("anular_ventas"), async (req, res) => {
   try {
+    // Solo Administrador y Gerente General pueden cancelar/reembolsar una
+    // venta — no basta con tener el permiso marcado (podría quedar en un
+    // usuario por error de configuración), el rol se verifica también aquí.
+    if (!req.usuario.isSuperAdmin && !["ADMIN", "GERENTE_GENERAL"].includes(req.usuario.rol)) {
+      return res.status(403).json({ error: "Solo Administrador o Gerente General pueden cancelar una venta" });
+    }
     const { motivo } = req.body;
     if (!motivo) return res.status(400).json({ error: "El motivo es obligatorio" });
 

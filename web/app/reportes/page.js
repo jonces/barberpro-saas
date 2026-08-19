@@ -140,7 +140,7 @@ export default function Reportes() {
   useEffect(() => { cargar(); }, [desde, hasta]);
 
   const usuario = usuarioActual();
-  const puedeAnular = usuario.isSuperAdmin || (usuario.permisos || []).includes("anular_ventas");
+  const puedeAnular = usuario.isSuperAdmin || (["ADMIN", "GERENTE_GENERAL"].includes(usuario.rol) && (usuario.permisos || []).includes("anular_ventas"));
 
   async function anularVenta(id) {
     const motivo = window.prompt("Motivo de la anulación:");
