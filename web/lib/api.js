@@ -26,6 +26,7 @@ export const dashboard = {
   superadmin: () => api("/dashboard/superadmin"),
 };
 export const barberias = {
+  registro: (body) => api("/barberias/registro", { method: "POST", body }),
   list: () => api("/barberias"),
   get: (id) => api(`/barberias/${id}`),
   create: (body) => api("/barberias", { method: "POST", body }),

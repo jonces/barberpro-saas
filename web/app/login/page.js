@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/api";
 
 export default function Login() {
@@ -52,8 +53,12 @@ export default function Login() {
           </form>
         </div>
 
-        <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 12, marginTop: 24 }}>
-          BarberPro © 2025 — Todos los derechos reservados
+        <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 13, marginTop: 20 }}>
+          ¿No tienes cuenta? <Link href="/registro" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>Registra tu barbería</Link>
+        </p>
+
+        <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 12, marginTop: 20 }}>
+          BarberPro © 2026 — Todos los derechos reservados
         </p>
       </div>
     </div>
