@@ -112,8 +112,10 @@
 .dash-profile-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
 .pos-grid { grid-template-columns: 1fr 380px; }
 .reportes-charts-grid { grid-template-columns: 3fr 2fr; }
-/* Página pública de reservas — contenido + resumen lateral fijo */
-.public-sidebar-grid { grid-template-columns: 1fr 320px; }
+/* Página pública de barbería — contenido + resumen lateral fijo */
+.public-main-grid { grid-template-columns: 1fr 320px; }
+.public-card:hover { border-color: rgba(212,175,55,.4) !important; transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) { .public-card:hover { transform: none; } }
 
 @media (max-width: 1180px) {
   .dash-kpi-grid { grid-template-columns: repeat(3, 1fr); }
@@ -126,11 +128,15 @@
   .pos-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 860px) {
-  .public-sidebar-grid { grid-template-columns: 1fr; }
+  .public-main-grid { grid-template-columns: 1fr; }
+  .public-sidebar-col { position: static !important; }
 }
 @media (max-width: 780px) {
   .public-nav-links { display: none !important; }
   .public-nav-toggle { display: inline-flex !important; }
+}
+@media (max-width: 640px) {
+  .public-phone-link { display: none !important; }
 }
 @media (max-width: 480px) {
   .public-phone-label { display: none; }
@@ -138,6 +144,22 @@
 .public-nav-mobile { display: none; }
 @media (max-width: 780px) {
   .public-nav-mobile { display: flex; }
+}
+.public-quickinfo { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 760px) {
+  .public-quickinfo { grid-template-columns: repeat(2, 1fr); }
+}
+.public-2col { grid-template-columns: 1fr 1fr; }
+@media (max-width: 700px) {
+  .public-2col { grid-template-columns: 1fr; }
+}
+.public-galeria-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 560px) {
+  .public-galeria-grid { grid-template-columns: repeat(2, 1fr); }
+}
+/* Carrito: sidebar fijo en desktop, barra inferior + hoja modal en móvil */
+@media (max-width: 860px) {
+  .public-mobile-cartbar { display: flex !important; }
 }
 
 /* ─── Auth (registro / login) ─── */

@@ -109,6 +109,14 @@ export const liquidaciones = {
   adelantos: { list: (params = {}) => api(`/liquidaciones/adelantos?${new URLSearchParams(params)}`), crear: (body) => api("/liquidaciones/adelantos", { method: "POST", body }) },
   ajustes: { list: (params = {}) => api(`/liquidaciones/ajustes?${new URLSearchParams(params)}`), crear: (body) => api("/liquidaciones/ajustes", { method: "POST", body }) },
 };
+export const publico = {
+  get: (slug) => api(`/publico/${slug}`),
+  servicios: (slug) => api(`/publico/${slug}/servicios`),
+  productos: (slug) => api(`/publico/${slug}/productos`),
+  barberos: (slug) => api(`/publico/${slug}/barberos`),
+  horarios: (slug) => api(`/publico/${slug}/horarios`),
+  crearCita: (slug, body) => api(`/publico/${slug}/citas`, { method: "POST", body }),
+};
 export const citas = {
   list: (params = {}) => api(`/citas?${new URLSearchParams(params)}`),
   create: (body) => api("/citas", { method: "POST", body }),
