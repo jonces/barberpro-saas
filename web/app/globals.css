@@ -143,6 +143,7 @@
 /* ─── Auth (registro / login) ─── */
 .auth-grid { display: grid; grid-template-columns: 1.05fr 1fr; }
 .auth-photo-panel { min-height: 100vh; }
+.auth-top-link:hover span { text-decoration: underline; }
 .auth-submit-btn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,175,55,.25); }
 .auth-submit-btn:active:not(:disabled) { transform: translateY(0); filter: brightness(.96); }
 .auth-spin { animation: auth-spin 1s linear infinite; }

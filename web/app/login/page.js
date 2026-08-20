@@ -38,7 +38,10 @@ export default function Login() {
         subtitle="Inicia sesión para seguir administrando tu negocio, equipo, citas y ventas."
       />
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px", background: "radial-gradient(ellipse 900px 600px at 50% 0%, rgba(212,175,55,.05) 0%, transparent 60%), #0a0a0b" }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px", background: "radial-gradient(ellipse 900px 600px at 50% 0%, rgba(212,175,55,.05) 0%, transparent 60%), #0a0a0b" }}>
+        <Link href="/registro" className="auth-top-link" style={{ position: "absolute", top: 24, right: 32, display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text2)", textDecoration: "none" }}>
+          ¿No tienes cuenta? <span style={{ color: "var(--accent)", fontWeight: 700 }}>Regístrate</span>
+        </Link>
         <div style={{ width: "100%", maxWidth: 420 }}>
           <div style={{ textAlign: "center", marginBottom: 30 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 9, marginBottom: 18 }}>
