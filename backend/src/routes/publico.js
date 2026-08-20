@@ -6,7 +6,10 @@ router.get("/:slug", async (req, res) => {
   try {
     const b = await prisma.barberia.findUnique({
       where: { slug: req.params.slug },
-      select: { id: true, nombre: true, slug: true, ciudad: true, telefono: true, email: true, descripcion: true, estado: true },
+      select: {
+        id: true, nombre: true, slug: true, ciudad: true, telefono: true, email: true, descripcion: true, estado: true,
+        logo: true, direccion: true, pais: true, sitioWeb: true, instagram: true, facebook: true, configuracion: true,
+      },
     });
     if (!b || b.estado === "SUSPENDIDA") return res.status(404).json({ error: "Barbería no encontrada" });
     res.json(b);
@@ -48,10 +51,24 @@ router.get("/:slug/barberos", async (req, res) => {
     if (!b) return res.status(404).json({ error: "Barbería no encontrada" });
     const barberos = await prisma.usuario.findMany({
       where: { barberiaId: b.id, rol: { in: ["BARBERO", "ADMIN"] }, estado: true },
-      select: { id: true, nombre: true, apellido: true },
+      select: { id: true, nombre: true, apellido: true, foto: true },
       orderBy: { nombre: "asc" },
     });
     res.json(barberos);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /publico/:slug/horarios
+router.get("/:slug/horarios", async (req, res) => {
+  try {
+    const b = await prisma.barberia.findUnique({ where: { slug: req.params.slug }, select: { id: true } });
+    if (!b) return res.status(404).json({ error: "Barbería no encontrada" });
+    const horarios = await prisma.horario.findMany({
+      where: { barberiaId: b.id },
+      select: { diaSemana: true, abierto: true, apertura: true, cierre: true },
+      orderBy: { diaSemana: "asc" },
+    });
+    res.json(horarios);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -63,6 +80,46 @@ router.post("/:slug/citas", async (req, res) => {
 
     const { nombre, telefono, email, barberoId, fecha, duracion, notas, servicioIds } = req.body;
     if (!nombre || !telefono || !fecha) return res.status(400).json({ error: "Nombre, teléfono y fecha son requeridos" });
+
+    const fechaCita = new Date(fecha);
+    if (isNaN(fechaCita.getTime())) return res.status(400).json({ error: "Fecha inválida" });
+
+    // Solo servicios que realmente pertenecen a esta barbería
+    const serviciosValidos = servicioIds?.length
+      ? await prisma.servicio.findMany({ where: { id: { in: servicioIds }, barberiaId: b.id } })
+      : [];
+
+    // El barbero debe pertenecer a esta barbería y estar activo
+    let barberoIdFinal = null;
+    if (barberoId) {
+      const barbero = await prisma.usuario.findFirst({
+        where: { id: barberoId, barberiaId: b.id, rol: { in: ["BARBERO", "ADMIN"] }, estado: true },
+        select: { id: true },
+      });
+      if (barbero) barberoIdFinal = barbero.id;
+    }
+
+    const duracionFinal = duracion || 30;
+
+    // Evitar choques exactos de horario con el mismo barbero
+    if (barberoIdFinal) {
+      const inicio = fechaCita;
+      const fin = new Date(fechaCita.getTime() + duracionFinal * 60000);
+      const conflicto = await prisma.cita.findFirst({
+        where: {
+          barberoId: barberoIdFinal,
+          estado: { in: ["PENDIENTE", "CONFIRMADA"] },
+          fecha: { lt: fin },
+          AND: [{ fecha: { gte: new Date(inicio.getTime() - 4 * 60 * 60000) } }],
+        },
+      });
+      if (conflicto) {
+        const conflictoFin = new Date(conflicto.fecha.getTime() + conflicto.duracion * 60000);
+        if (conflicto.fecha < fin && conflictoFin > inicio) {
+          return res.status(400).json({ error: "Ese barbero ya tiene una cita en ese horario. Elige otra hora." });
+        }
+      }
+    }
 
     // Buscar o crear cliente
     let cliente = await prisma.cliente.findFirst({ where: { barberiaId: b.id, telefono } });
@@ -77,16 +134,13 @@ router.post("/:slug/citas", async (req, res) => {
       data: {
         barberiaId: b.id,
         clienteId: cliente.id,
-        barberoId: barberoId || null,
-        fecha: new Date(fecha),
-        duracion: duracion || 30,
+        barberoId: barberoIdFinal,
+        fecha: fechaCita,
+        duracion: duracionFinal,
         notas: notas || null,
         estado: "PENDIENTE",
-        items: servicioIds?.length ? {
-          create: await Promise.all(servicioIds.map(async (sid) => {
-            const s = await prisma.servicio.findUnique({ where: { id: sid } });
-            return { servicioId: sid, precio: s?.precio || 0 };
-          })),
+        items: serviciosValidos.length ? {
+          create: serviciosValidos.map((s) => ({ servicioId: s.id })),
         } : undefined,
       },
       include: { cliente: true, barbero: { select: { nombre: true } }, items: { include: { servicio: { select: { nombre: true } } } } },
